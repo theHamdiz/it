@@ -52,8 +52,14 @@ type StructuredLogEntry struct {
 }
 
 var (
-	logOutput = os.Stdout                 // Default to standard output
-	logger    = &Logger{level: LevelInfo} // Default log level
+	logOutput    = os.Stdout                 // Default to standard output
+	logger       = &Logger{level: LevelInfo} // Default log level
+	magentaColor = color.New(color.FgMagenta)
+	blueColor    = color.New(color.FgBlue)
+	greenColor   = color.New(color.FgGreen)
+	redColor     = color.New(color.FgRed)
+	cyanColor    = color.New(color.FgCyan)
+	yellowColor  = color.New(color.FgYellow)
 )
 
 // SetLogOutput sets the output destination for logs.
@@ -102,7 +108,7 @@ func SetLogLevel(level int) {
 //	it.Trace("Entering function X")
 func Trace(message string) {
 	if logger.level <= LevelTrace {
-		_, err := color.New(color.FgMagenta).Fprintf(logOutput, "> Trace: %s\n", message)
+		_, err := magentaColor.Fprintf(logOutput, "> Trace: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -117,7 +123,7 @@ func Trace(message string) {
 //	it.Tracef("Processing item %d of %d", currentItem, totalItems)
 func Tracef(format string, args ...interface{}) {
 	if logger.level <= LevelTrace {
-		_, err := color.New(color.FgMagenta).Fprintf(logOutput, "> Trace: "+format+"\n", args...)
+		_, err := magentaColor.Fprintf(logOutput, "> Trace: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -132,7 +138,7 @@ func Tracef(format string, args ...interface{}) {
 //	it.Debug("Loaded configuration successfully")
 func Debug(message string) {
 	if logger.level <= LevelDebug {
-		_, err := color.New(color.FgBlue).Fprintf(logOutput, "> Debug: %s\n", message)
+		_, err := blueColor.Fprintf(logOutput, "> Debug: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -147,7 +153,7 @@ func Debug(message string) {
 //	it.Debugf("User %s has %d pending messages", username, messageCount)
 func Debugf(format string, args ...interface{}) {
 	if logger.level <= LevelDebug {
-		_, err := color.New(color.FgBlue).Printf("> Debug: "+format+"\n", args...)
+		_, err := blueColor.Printf("> Debug: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -221,7 +227,7 @@ func CheckError(err error) {
 //	it.Info("Starting the application")
 func Info(message string) {
 	if logger.level <= LevelInfo {
-		_, err := color.New(color.FgCyan).Fprintf(logOutput, "> Info: %s\n", message)
+		_, err := cyanColor.Fprintf(logOutput, "> Info: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -236,7 +242,7 @@ func Info(message string) {
 //	it.Infof("Starting the application version %s", version)
 func Infof(format string, args ...interface{}) {
 	if logger.level <= LevelInfo {
-		_, err := color.New(color.FgCyan).Fprintf(logOutput, "> Info: "+format+"\n", args...)
+		_, err := cyanColor.Fprintf(logOutput, "> Info: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -252,7 +258,7 @@ func Infof(format string, args ...interface{}) {
 //	it.Warn("Configuration file not found, using defaults")
 func Warn(message string) {
 	if logger.level <= LevelWarning {
-		_, err := color.New(color.FgYellow).Fprintf(logOutput, "> Warning: %s\n", message)
+		_, err := yellowColor.Fprintf(logOutput, "> Warning: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -267,7 +273,7 @@ func Warn(message string) {
 //	it.Warnf("Configuration file %s not found, using defaults", configFile)
 func Warnf(format string, args ...interface{}) {
 	if logger.level <= LevelWarning {
-		_, err := color.New(color.FgYellow).Fprintf(logOutput, "> Warning: "+format+"\n", args...)
+		_, err := yellowColor.Fprintf(logOutput, "> Warning: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -282,7 +288,7 @@ func Warnf(format string, args ...interface{}) {
 //	it.Error("Failed to connect to the database")
 func Error(message string) {
 	if logger.level <= LevelError {
-		_, err := color.New(color.FgRed).Fprintf(logOutput, "> Error: %s\n", message)
+		_, err := redColor.Fprintf(logOutput, "> Error: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -297,7 +303,7 @@ func Error(message string) {
 //	it.Errorf("Failed to connect to the database: %v", err)
 func Errorf(format string, args ...interface{}) {
 	if logger.level <= LevelError {
-		_, err := color.New(color.FgRed).Fprintf(logOutput, "> Error: "+format+"\n", args...)
+		_, err := redColor.Fprintf(logOutput, "> Error: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -367,14 +373,14 @@ func StructuredDebug(message string, data interface{}) {
 }
 
 // StructuredWarning logs a warning message in a structured format.
-// Use StructuredWarn to log warnings with additional contextual data.
+// Use StructuredWarning to log warnings with additional contextual data.
 //
 // Example usage:
 //
-//	it.StructuredWarn("High memory usage detected", map[string]interface{}{"usage": 95})
+//	it.StructuredWarning("High memory usage detected", map[string]interface{}{"usage": 95})
 
 func StructuredWarning(message string, data interface{}) {
-	StructuredLog("WARN", message, data)
+	StructuredLog("WARNING", message, data)
 }
 
 // StructuredError logs an error message in a structured format.

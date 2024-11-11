@@ -56,7 +56,6 @@ var (
 	logger       = &Logger{level: LevelInfo} // Default log level
 	magentaColor = color.New(color.FgMagenta)
 	blueColor    = color.New(color.FgBlue)
-	greenColor   = color.New(color.FgGreen)
 	redColor     = color.New(color.FgRed)
 	cyanColor    = color.New(color.FgCyan)
 	yellowColor  = color.New(color.FgYellow)

@@ -8,20 +8,20 @@ Utility Functions for Error Handling, Logging, and Retry Logic in Go
 
 ### Table of Contents
 
- • Overview
- • Features
- • Installation
- • Quick Start
- • Usage Examples
- • Error Handling
- • Logging
- • Structured Logging
- • Retry and Exponential Backoff
- • Utility Functions
- • Configuration
- • Documentation
- • Contributing
- • License
+ • Overview  
+ • Features  
+ • Installation  
+ • Quick Start  
+ • Usage Examples  
+ • Error Handling  
+ • Logging  
+ • Structured Logging  
+ • Retry and Exponential Backoff  
+ • Utility Functions  
+ • Configuration  
+ • Documentation  
+ • Contributing  
+ • License  
 
 #### Overview
 
@@ -29,12 +29,12 @@ it is a Go package providing utility functions for error handling, logging, and 
 
 #### Features
 
- • Simplified error handling with Must and Should
- • Logging functions for different log levels: Trace, Debug, Info, Warn, Error, and Fatal
- • Structured logging in JSON format for easy parsing and analysis
- • Configurable log levels, outputs, and color-coded console output
- • Utility functions for retry mechanisms, exponential backoff, and context-based retries
- • Enhanced error wrapping, panic recovery, and timing functions
+ • Simplified error handling with Must and Should  
+ • Logging functions for different log levels: Trace, Debug, Info, Warn, Error, and Fatal  
+ • Structured logging in JSON format for easy parsing and analysis  
+ • Configurable log levels, outputs, and color-coded console output  
+ • Utility functions for retry mechanisms, exponential backoff, and context-based retries  
+ • Enhanced error wrapping, panic recovery, and timing functions  
 
 ### Installation
 
@@ -126,11 +126,11 @@ err := it.WrapWithContext(err, "processing file", map[string]string{"file": file
 `it.Warnf("Disk space low: %d%% remaining", diskSpace)`  
 `it.Errorf("Error %d: %s", errorCode, errorMessage)`  
 
-`Debug` and `Trace` Logging
+`Debug` and `Trace` Logging  
 
- Set the log level to include debug and trace messages:
+ Set the log level to include debug and trace messages:  
 
-`it.SetLogLevel(it.LevelDebug)`
+`it.SetLogLevel(it.LevelDebug)`  
 
 #### Log messages
 
@@ -141,7 +141,7 @@ err := it.WrapWithContext(err, "processing file", map[string]string{"file": file
 
 ### LogStackTrace
 
-Logs the current stack trace, which is helpful for debugging complex issues by displaying the call stack.
+Logs the current stack trace, which is helpful for debugging complex issues by displaying the call stack.  
 
 ```go
 func LogStackTrace()
@@ -157,7 +157,7 @@ it.LogStackTrace()
 
 ### `LogErrorWithStack`
 
-Logs an error along with the current stack trace. This provides more detailed information to aid in debugging by capturing the error context and call stack.
+Logs an error along with the current stack trace. This provides more detailed information to aid in debugging by capturing the error context and call stack.  
 
 ```go
 func LogErrorWithStack(err error)
@@ -173,39 +173,39 @@ it.LogErrorWithStack(err)
 
 #### LogOnce
 
- Logs a message only once, avoiding repetitive log entries in loops.
+ Logs a message only once, avoiding repetitive log entries in loops.  
 
-`it.LogOnce("This message will only be logged once")`
+`it.LogOnce("This message will only be logged once")`  
 
 #### Audit
 
- Logs an audit-specific message for tracking important actions.
+ Logs an audit-specific message for tracking important actions.  
 
-`it.Audit("User login attempt recorded")`
+`it.Audit("User login attempt recorded")`  
 
 #### Structured Logging
 
 #### Structured Info
 
- Logs messages in JSON format with additional data.
+ Logs messages in JSON format with additional data.  
 
 ```go
 userData := map[string]string{"username": "johndoe", "ip": "192.168.1.1"}
 it.StructuredInfo("User logged in", userData)
-```
+```  
 
 ---
 
 ### StructuredDebug
 
-Logs a structured debug-level message in JSON format, useful for detailed logging with additional contextual data.
+Logs a structured debug-level message in JSON format, useful for detailed logging with additional contextual data.  
 
 ```go
 func StructuredDebug(message string, data any)
 ```
 
-- **`message`**: The debug message to log.
-- **`data`**: Additional contextual data in key-value format.
+- **`message`**: The debug message to log.  
+- **`data`**: Additional contextual data in key-value format.  
 
 **Example Usage:**
 
@@ -217,14 +217,14 @@ it.StructuredDebug("Cache hit", map[string]string{"key": "user:1234"})
 
 ### StructuredWarning
 
-Logs a structured warning message in JSON format with additional data. Useful for tracking non-critical issues in a structured way.
+Logs a structured warning message in JSON format with additional data. Useful for tracking non-critical issues in a structured way.  
 
 ```go
 func StructuredWarning(message string, data any)
 ```
 
-- **`message`**: The warning message to log.
-- **`data`**: Additional key-value data to provide context.
+- **`message`**: The warning message to log.  
+- **`data`**: Additional key-value data to provide context.  
 
 **Example Usage:**
 
@@ -234,40 +234,40 @@ it.StructuredWarning("High memory usage detected", map[string]interface{}{"usage
 
 ---
 
-### StructuredError
+### StructuredError  
 
-Logs an error message in JSON format with additional contextual data, useful for error tracking with structured logs.
-
-```go
-func StructuredError(message string, data any)
-```
-
-- **`message`**: The error message to log.
-- **`data`**: Additional context in a key-value format.
-
-**Example Usage:**
+Logs an error message in JSON format with additional contextual data, useful for error tracking with structured logs.  
 
 ```go
-it.StructuredError("File not found", map[string]string{"filename": "config.yaml"})
+func StructuredError(message string, data any)  
 ```
 
-#### Retry and Exponential Backoff
+- **`message`**: The error message to log.  
+- **`data`**: Additional context in a key-value format.  
 
-#### Retry
+**Example Usage:**  
 
- Retries a function with a fixed delay. Useful for handling transient errors.
+```go
+it.StructuredError("File not found", map[string]string{"filename": "config.yaml"})  
+```
 
-`err := it.Retry(3, time.Second, SomeFunction)`
+#### Retry and Exponential Backoff  
 
-#### RetryExponential
+#### Retry  
 
- Retries a function with exponential backoff, doubling the delay after each attempt.
+ Retries a function with a fixed delay. Useful for handling transient errors.  
 
-`err := it.RetryExponential(5, time.Second, SomeFunction)`
+`err := it.Retry(3, time.Second, SomeFunction)`  
 
-#### RetryWithContext
+#### RetryExponential  
 
- Retries a function with a fixed delay, stopping if the context is canceled.
+ Retries a function with exponential backoff, doubling the delay after each attempt.  
+
+`err := it.RetryExponential(5, time.Second, SomeFunction)`  
+
+#### RetryWithContext  
+
+ Retries a function with a fixed delay, stopping if the context is canceled.  
 
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -275,123 +275,123 @@ defer cancel()
 err := it.RetryWithContext(ctx, 3, time.Second, SomeFunction)
 ```
 
-#### RetryExponentialWithCancellation
+#### RetryExponentialWithCancellation  
 
- Retries a function with exponential backoff, doubling the delay after each attempt, but stops if the context is canceled.
+ Retries a function with exponential backoff, doubling the delay after each attempt, but stops if the context is canceled.  
 
 ```go
-ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-defer cancel()
-err := it.RetryExponentialWithCancellation(ctx, 5, time.Second, SomeFunction)
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)  
+defer cancel()  
+err := it.RetryExponentialWithCancellation(ctx, 5, time.Second, SomeFunction)  
 ```
 
-#### Utility Functions
+#### Utility Functions  
 
-#### WaitFor
+#### WaitFor  
 
- Waits until a specified condition is met or times out.
+ Waits until a specified condition is met or times out.  
 
-`it.WaitFor(time.Second*10, func() bool { return someCondition() })`
+`it.WaitFor(time.Second*10, func() bool { return someCondition() })`  
 
-#### DeferWithLog
+#### DeferWithLog  
 
- Creates a deferred function that logs a message upon completion, helpful for complex defer chains.
+ Creates a deferred function that logs a message upon completion, helpful for complex defer chains.  
 
-`defer it.DeferWithLog("Cleanup complete")()`
+`defer it.DeferWithLog("Cleanup complete")()`  
 
-#### TimeFunction
+#### TimeFunction  
 
- Measures and logs the execution time of a function.
+ Measures and logs the execution time of a function.  
 
-`it.TimeFunction("compute", compute)`
+`it.TimeFunction("compute", compute)`  
 
-#### TimeBlock
+#### TimeBlock  
 
- Starts a timer and logs the execution time of a code block.
+ Starts a timer and logs the execution time of a code block.  
 
-`defer it.TimeBlock("main")()`
+`defer it.TimeBlock("main")()`  
 
 ---
 
 ### GracefulShutdown
 
-Gracefully shuts down a server upon receiving an interrupt signal (e.g., Ctrl+C) within a specified timeout. It can be used with any server that has a `Shutdown` method that accepts a `context.Context`.
+Gracefully shuts down a server upon receiving an interrupt signal (e.g., Ctrl+C) within a specified timeout. It can be used with any server that has a `Shutdown` method that accepts a `context.Context`.  
 
 ```go
-func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration)
+func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration)  
 ```
 
-- **`ctx`**: The base context for shutdown, which can be `context.Background()` or another context.
-- **`server`**: The server object to shut down, which must have a `Shutdown` method that takes a `context.Context`.
-- **`timeout`**: The maximum time to wait for the server to shut down gracefully.
+- **`ctx`**: The base context for shutdown, which can be `context.Background()` or another context.  
+- **`server`**: The server object to shut down, which must have a `Shutdown` method that takes a `context.Context`.  
+- **`timeout`**: The maximum time to wait for the server to shut down gracefully.  
 
-**Example Usage:**
+**Example Usage:**  
 
 ```go
-it.GracefulShutdown(context.Background(), server, 5*time.Second)
+it.GracefulShutdown(context.Background(), server, 5*time.Second)  
 ```
 
 ---
 
-### GracefulRestart
+### GracefulRestart  
 
-Gracefully restarts a server upon receiving an interrupt signal (e.g., SIGHUP) or other restart signal within a specified timeout. Like `GracefulShutdown`, it works with any server that has a `Shutdown` method.
-
-```go
-func GracefulRestart(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration)
-```
-
-- **`ctx`**: The context for shutdown, typically `context.Background()` or similar.
-- **`server`**: The server instance to restart, which must implement `Shutdown`.
-- **`timeout`**: The maximum time allowed for the graceful shutdown before restarting.
-
-**Example Usage:**
+Gracefully restarts a server upon receiving an interrupt signal (e.g., SIGHUP) or other restart signal within a specified timeout. Like `GracefulShutdown`, it works with any server that has a `Shutdown` method.  
 
 ```go
-it.GracefulRestart(context.Background(), server, 5*time.Second)
+func GracefulRestart(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration)  
 ```
 
-#### BufferedLogger
+- **`ctx`**: The context for shutdown, typically `context.Background()` or similar.  
+- **`server`**: The server instance to restart, which must implement `Shutdown`.  
+- **`timeout`**: The maximum time allowed for the graceful shutdown before restarting.  
 
- Logs to any specified writer with buffering, supporting os.Stdout, file, or custom io.Writer.
+**Example Usage:**  
+
+```go
+it.GracefulRestart(context.Background(), server, 5*time.Second)  
+```
+
+#### BufferedLogger  
+
+ Logs to any specified writer with buffering, supporting os.Stdout, file, or custom io.Writer.  
 
 ```go
 file, _ := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 logger := it.NewBufferedLogger(file)
 logger.Log("Buffered log message")
 logger.Flush()
-```
+```  
 
-#### Configuration
+#### Configuration  
 
-#### Setting Log Output
+#### Setting Log Output  
 
-Redirect logs to a file or other output destination.
+Redirect logs to a file or other output destination.  
 
 ```go
 file, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 it.SetLogOutput(file)
-```
+```  
 
-#### Setting Log Level
+#### Setting Log Level  
 
-Control verbosity of logs:
+Control verbosity of logs:  
 
-`it.SetLogLevel(it.LevelInfo)`
+`it.SetLogLevel(it.LevelInfo)`  
 
-#### Available levels
+#### Available levels  
 
- • it.LevelTrace
- • it.LevelDebug
- • it.LevelInfo
- • it.LevelWarn
- • it.LevelError
- • it.LevelFatal
- • it.LevelAudit
+ • it.LevelTrace  
+ • it.LevelDebug  
+ • it.LevelInfo  
+ • it.LevelWarn  
+ • it.LevelError  
+ • it.LevelFatal  
+ • it.LevelAudit  
 
-#### Environment Variables
+#### Environment Variables  
 
-Initialize logger settings from environment variables:
+Initialize logger settings from environment variables:  
 
 ```go
 os.Setenv("LOG_LEVEL", "DEBUG")
@@ -399,29 +399,29 @@ os.Setenv("LOG_FILE", "app.log")
 it.InitFromEnv()
 ```
 
-#### Supported variables
+#### Supported variables  
 
- • LOG_LEVEL: TRACE, DEBUG, INFO, WARN, ERROR, FATAL
- • LOG_FILE: Path to a file for log output
+ • LOG_LEVEL: TRACE, DEBUG, INFO, WARN, ERROR, FATAL  
+ • LOG_FILE: Path to a file for log output  
 
-#### Documentation
+#### Documentation  
 
-For detailed documentation of all functions, visit the GoDoc page.
+For detailed documentation of all functions, visit the GoDoc page.  
 
-#### Contributing
+#### Contributing  
 
-Contributions are welcome! Please submit issues and pull requests for bug fixes, enhancements, or new features.
+Contributions are welcome! Please submit issues and pull requests for bug fixes, enhancements, or new features.  
 
- 1. Fork the repository.
- 2. Create a new branch (git checkout -b feature/your-feature).
- 3. Commit your changes (git commit -am 'Add new feature').
- 4. Push to the branch (git push origin feature/your-feature).
- 5. Open a pull request.
+ 1. Fork the repository.  
+ 2. Create a new branch (git checkout -b feature/your-feature).  
+ 3. Commit your changes (git commit -am 'Add new feature').  
+ 4. Push to the branch (git push origin feature/your-feature).  
+ 5. Open a pull request.  
 
-Please ensure your code adheres to Go conventions and includes tests where appropriate.
+Please ensure your code adheres to Go conventions and includes tests where appropriate.  
 
-#### License
+#### License  
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.  
 
-Thank you for using it! If you have any questions or feedback, feel free to open an issue or submit a pull request.
+Thank you for using it! If you have any questions or feedback, feel free to open an issue or submit a pull request.  

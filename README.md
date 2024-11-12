@@ -2,7 +2,11 @@
 
 Utility Functions for Error Handling, Logging, and Retry Logic in Go
 
-#### Table of Contents
+[![GoDoc](https://pkg.go.dev/badge/github.com/theHamdiz/it)](https://pkg.go.dev/github.com/theHamdiz/it)
+[![Go Report Card](https://goreportcard.com/badge/github.com/theHamdiz/it)](https://goreportcard.com/report/github.com/theHamdiz/it)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+### Table of Contents
 
 	•	Overview
 	•	Features

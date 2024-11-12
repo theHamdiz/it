@@ -28,6 +28,10 @@ import (
 	"github.com/fatih/color"
 )
 
+// ===================================================
+// Declarations Area
+// ===================================================
+
 // Define log levels
 const (
 	LevelTrace = iota
@@ -36,6 +40,7 @@ const (
 	LevelWarning
 	LevelError
 	LevelFatal
+	LevelAudit
 )
 
 var (
@@ -46,7 +51,12 @@ var (
 	redColor     = color.New(color.FgRed)
 	cyanColor    = color.New(color.FgCyan)
 	yellowColor  = color.New(color.FgYellow)
+	once         sync.Once
 )
+
+// ===================================================
+// Definitions Area
+// ===================================================
 
 // Logger struct to manage log level
 type Logger struct {
@@ -61,43 +71,65 @@ type StructuredLogEntry struct {
 	Data    any    `json:"data,omitempty"`
 }
 
-// SetLogOutput sets the output destination for logs.
-// It can be a file, os.Stdout, os.Stderr, or any io.Writer.
+// ===================================================
+// Testing Area
+// ===================================================
+
+// Must returns the value x if err is nil. If err is not nil, Must panics with the error.
+// Use Must when an error is unrecoverable and should halt the program execution.
 //
 // Example usage:
 //
-//	file, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-//	if err != nil {
-//	    it.Fatalf("Failed to open log file: %v", err)
-//	}
-//	defer file.Close()
-//	it.SetLogOutput(file)
-func SetLogOutput(output *os.File) {
-	logger.mu.Lock()
-	defer logger.mu.Unlock()
-	logOutput = output
+//	result := it.Must(SomeFunction())
+func Must[T any](x T, err error) T {
+	CheckError(err)
+	return x
 }
 
-// SetLogLevel sets the minimum log level for logging.
-// Messages below this level will not be logged.
-//
-// Available log levels:
-//
-//	it.LevelTrace
-//	it.LevelDebug
-//	it.LevelInfo
-//	it.LevelWarn
-//	it.LevelError
-//	it.LevelFatal
+// Ensure panics if err is not nil. Use Ensure for critical operations
+// where an error is unacceptable, much like Must but
+// for methods that only return error.
 //
 // Example usage:
 //
-//	it.SetLogLevel(it.LevelDebug)
-func SetLogLevel(level int) {
-	logger.mu.Lock()
-	defer logger.mu.Unlock()
-	logger.level = level
+//	it.Ensure(SomeErrorOnlyFunction())
+func Ensure(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
+
+// Should returns the value x regardless of whether err is nil. If err is not nil,
+// Should logs the error with the filename and line number.
+// Use Should when you want to log an error but continue execution.
+//
+// Note: Be cautious when using Should, as x may be in an invalid state if err is not nil.
+// Ensure that the returned value is safe to use in such cases.
+//
+// Example usage:
+//
+//	result := it.Should(SomeFunction())
+func Should[T any](x T, err error) T {
+	LogError(err)
+	return x
+}
+
+// Attempt logs the error with filename and line number if err is not nil,
+// but allows the program to continue, much like Should but for methods
+// that only return an error.
+//
+// Example usage:
+//
+//	it.Attempt(SomeErrorOnlyFunction())
+func Attempt(err error) {
+	if err != nil {
+		LogError(err)
+	}
+}
+
+// ===================================================
+// Logging Area
+// ===================================================
 
 // Trace logs a trace-level message.
 // Use Trace to log very detailed information for tracing program execution.
@@ -157,37 +189,6 @@ func Debugf(format string, args ...interface{}) {
 			return
 		}
 	}
-}
-
-// init sets the logger to include standard flags along with the filename and line number.
-func init() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-}
-
-// Must returns the value x if err is nil. If err is not nil, Must panics with the error.
-// Use Must when an error is unrecoverable and should halt the program execution.
-//
-// Example usage:
-//
-//	result := it.Must(SomeFunction())
-func Must[T any](x T, err error) T {
-	CheckError(err)
-	return x
-}
-
-// Should returns the value x regardless of whether err is nil. If err is not nil,
-// Should logs the error with the filename and line number.
-// Use Should when you want to log an error but continue execution.
-//
-// Note: Be cautious when using Should, as x may be in an invalid state if err is not nil.
-// Ensure that the returned value is safe to use in such cases.
-//
-// Example usage:
-//
-//	result := it.Should(SomeFunction())
-func Should[T any](x T, err error) T {
-	LogError(err)
-	return x
 }
 
 // LogError logs the error with the filename and line number if err is not nil.
@@ -417,54 +418,17 @@ func WrapErrorf(err error, format string, args ...interface{}) error {
 	return nil
 }
 
-// RecoverPanicAndExit recovers from a panic, logs the error and stack trace, and exits.
-// Use RecoverPanic with defer to handle panics gracefully.
+// WrapErrorWithContext wraps an error with additional contextual information.
+// Useful for adding more details to errors without losing the original error.
 //
 // Example usage:
 //
-//	defer it.RecoverPanic()
-func RecoverPanicAndExit() {
-	if r := recover(); r != nil {
-		Errorf("Panic recovered: %v", r)
-		Error(string(debug.Stack()))
-		os.Exit(1)
+//	err := it.WrapErrorWithContext(err, "processing file", map[string]string{"file": filename})
+func WrapErrorWithContext(err error, message string, context map[string]string) error {
+	if err != nil {
+		return fmt.Errorf("%s: %w [context: %v]", message, err, context)
 	}
-}
-
-// RecoverPanicAndContinue returns a function suitable for use with defer.
-// It recovers from a panic, logs the error and stack trace.
-func RecoverPanicAndContinue() {
-	if r := recover(); r != nil {
-		Errorf("Panic recovered: %v", r)
-		Error(string(debug.Stack()))
-	}
-}
-
-// TimeFunction measures and logs the execution time of a function.
-// Use TimeFunction to profile the performance of specific functions.
-//
-// Example usage:
-//
-//	it.TimeFunction("compute", compute)
-func TimeFunction(name string, f func()) {
-	start := time.Now()
-	f()
-	duration := time.Since(start)
-	Infof("Function %s took %v", name, duration)
-}
-
-// TimeBlock starts a timer and returns a function to stop the timer and log the duration.
-// Use TimeBlock with defer to measure the execution time of a code block.
-//
-// Example usage:
-//
-//	defer it.TimeBlock("main")()
-func TimeBlock(name string) func() {
-	start := time.Now()
-	return func() {
-		duration := time.Since(start)
-		Infof("Block %s took %v", name, duration)
-	}
+	return nil
 }
 
 // LogStackTrace logs the current stack trace.
@@ -494,6 +458,170 @@ func LogErrorWithStack(err error) {
 	}
 }
 
+// Audit logs a message with the custom Audit level.
+// Use Audit for logging audit-related information.
+//
+// Example usage:
+//
+//	it.Audit("User login attempt recorded")
+func Audit(message string) {
+	if logger.level <= LevelAudit {
+		_, err := fmt.Fprintf(logOutput, "> Audit: %s\n", message)
+		if err != nil {
+			return
+		}
+	}
+}
+
+// DeferWithLog defers a function with an optional log message.
+// Useful for managing complex defer chains with logs.
+//
+// Example usage:
+//
+//	defer it.DeferWithLog("Cleanup complete")()
+func DeferWithLog(message string) func() {
+	return func() {
+		Info(message)
+	}
+}
+
+// LogOnce logs a message only once.
+// Useful in scenarios where a repeated log would clutter output.
+//
+// Example usage:
+//
+//	it.LogOnce("This message will only be logged once")
+func LogOnce(message string) {
+	once.Do(func() {
+		Info(message)
+	})
+}
+
+// WaitFor waits until the provided function returns true or times out after `timeout` duration.
+// Useful for waiting on certain conditions in concurrent environments.
+//
+// Example usage:
+//
+//	it.WaitFor(time.Second * 10, func() bool { return someCondition() })
+func WaitFor(timeout time.Duration, condition func() bool) bool {
+	end := time.Now().Add(timeout)
+	for time.Now().Before(end) {
+		if condition() {
+			return true
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return false
+}
+
+// ===================================================
+// Panic Recovery Area
+// ===================================================
+
+// RecoverPanicAndExit recovers from a panic, logs the error and stack trace, and exits.
+// Use RecoverPanic with defer to handle panics gracefully.
+//
+// Example usage:
+//
+//	defer it.RecoverPanic()
+func RecoverPanicAndExit() {
+	if r := recover(); r != nil {
+		Errorf("Panic recovered: %v", r)
+		Error(string(debug.Stack()))
+		os.Exit(1)
+	}
+}
+
+// RecoverPanicAndContinue returns a function suitable for use with defer.
+// It recovers from a panic, logs the error and stack trace.
+func RecoverPanicAndContinue() {
+	if r := recover(); r != nil {
+		Errorf("Panic recovered: %v", r)
+		Error(string(debug.Stack()))
+	}
+}
+
+// ===================================================
+// Timing Area
+// ===================================================
+
+// TimeFunction measures and logs the execution time of a function.
+// Use TimeFunction to profile the performance of specific functions.
+//
+// Example usage:
+//
+//	it.TimeFunction("compute", compute)
+func TimeFunction(name string, f func()) {
+	start := time.Now()
+	f()
+	duration := time.Since(start)
+	Infof("Function %s took %v", name, duration)
+}
+
+// TimeBlock starts a timer and returns a function to stop the timer and log the duration.
+// Use TimeBlock with defer to measure the execution time of a code block.
+//
+// Example usage:
+//
+//	defer it.TimeBlock("main")()
+func TimeBlock(name string) func() {
+	start := time.Now()
+	return func() {
+		duration := time.Since(start)
+		Infof("Block %s took %v", name, duration)
+	}
+}
+
+// ===================================================
+// Retrial Area
+// ===================================================
+
+// Retry retries the given function `fn` up to `attempts` times with a delay between attempts.
+// Returns the error from the last attempt if all attempts fail.
+//
+// Example usage:
+//
+//	err := it.Retry(3, time.Second, SomeErrorOnlyFunction)
+func Retry(attempts int, delay time.Duration, fn func() error) error {
+	for i := 0; i < attempts; i++ {
+		if err := fn(); err != nil {
+			if i == attempts-1 {
+				return err
+			}
+			time.Sleep(delay)
+			continue
+		}
+		return nil
+	}
+	return nil
+}
+
+// RetryExponential retries the given function `fn` up to `attempts` times with an exponential backoff delay between attempts.
+// The delay starts at `initialDelay` and doubles with each attempt. Returns the error from the last attempt if all attempts fail.
+//
+// Example usage:
+//
+//	err := it.RetryExponential(5, time.Second, SomeErrorOnlyFunction)
+func RetryExponential(attempts int, initialDelay time.Duration, fn func() error) error {
+	delay := initialDelay
+	for i := 0; i < attempts; i++ {
+		if err := fn(); err != nil {
+			if i == attempts-1 {
+				return err // Return the last error if all attempts fail
+			}
+			time.Sleep(delay)
+			delay *= 2 // Double the delay for exponential backoff
+			continue
+		}
+		return nil // Success, no need to retry
+	}
+	return nil
+}
+
+// ===================================================
+// Configuration Area
+// ===================================================
+
 // InitFromEnv initializes the logger settings from environment variables.
 // Supported environment variables:
 // - LOG_LEVEL: TRACE, DEBUG, INFO, WARN, ERROR, FATAL
@@ -517,6 +645,8 @@ func InitFromEnv() {
 		SetLogLevel(LevelError)
 	case "FATAL":
 		SetLogLevel(LevelFatal)
+	case "AUDIT":
+		SetLogLevel(LevelAudit)
 	default:
 		SetLogLevel(LevelInfo)
 	}
@@ -531,6 +661,54 @@ func InitFromEnv() {
 		}
 	}
 }
+
+// init sets the logger to include standard flags along with the filename and line number.
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+}
+
+// SetLogOutput sets the output destination for logs.
+// It can be a file, os.Stdout, os.Stderr, or any io.Writer.
+//
+// Example usage:
+//
+//	file, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+//	if err != nil {
+//	    it.Fatalf("Failed to open log file: %v", err)
+//	}
+//	defer file.Close()
+//	it.SetLogOutput(file)
+func SetLogOutput(output *os.File) {
+	logger.mu.Lock()
+	defer logger.mu.Unlock()
+	logOutput = output
+}
+
+// SetLogLevel sets the minimum log level for logging.
+// Messages below this level will not be logged.
+//
+// Available log levels:
+//
+//		it.LevelTrace
+//		it.LevelDebug
+//		it.LevelInfo
+//		it.LevelWarn
+//		it.LevelError
+//		it.LevelFatal
+//	    it.LevelAudit
+//
+// Example usage:
+//
+//	it.SetLogLevel(it.LevelDebug)
+func SetLogLevel(level int) {
+	logger.mu.Lock()
+	defer logger.mu.Unlock()
+	logger.level = level
+}
+
+// ===================================================
+// Helper Functions Area
+// ===================================================
 
 // Helper function to check log level
 func shouldLogLevel(level string) bool {

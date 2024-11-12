@@ -213,8 +213,7 @@ func LogError(err error) {
 //	it.CheckError(err)
 func CheckError(err error) {
 	if err != nil {
-		Errorf("%v", err)
-		os.Exit(1)
+		panic(err)
 	}
 }
 

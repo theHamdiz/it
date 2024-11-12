@@ -25,6 +25,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"reflect"
 	"runtime/debug"
 	"sync"
 	"syscall"
@@ -841,7 +842,7 @@ func RetryWithContext(ctx context.Context, attempts int, delay time.Duration, fn
 	return nil
 }
 
-// RetryExponentialWithCancellation retries the given function `fn` up to `attempts` times with an exponential
+// RetryExponentialWithContext retries the given function `fn` up to `attempts` times with an exponential
 // backoff delay between attempts. The delay starts at `initialDelay` and doubles with each attempt.
 // If the context is canceled, it stops retrying and returns the context error.
 //
@@ -849,8 +850,8 @@ func RetryWithContext(ctx context.Context, attempts int, delay time.Duration, fn
 //
 //	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 //	defer cancel()
-//	err := it.RetryExponentialWithCancellation(ctx, 5, time.Second, SomeErrorOnlyFunction)
-func RetryExponentialWithCancellation(ctx context.Context, attempts int, initialDelay time.Duration, fn func() error) error {
+//	err := it.RetryExponentialWithContext(ctx, 5, time.Second, SomeErrorOnlyFunction)
+func RetryExponentialWithContext(ctx context.Context, attempts int, initialDelay time.Duration, fn func() error) error {
 	delay := initialDelay
 	for i := 0; i < attempts; i++ {
 		// Check if the context is done before each attempt
@@ -894,12 +895,31 @@ func RetryExponentialWithCancellation(ctx context.Context, attempts int, initial
 //
 //	limitedFn := it.RateLimiter(time.Second, SomeFunction)
 //	go limitedFn()
-func RateLimiter(rate time.Duration, fn func()) func() {
+func RateLimiter(rate time.Duration, fn func(data interface{})) func() {
 	ticker := time.NewTicker(rate)
 	return func() {
 		<-ticker.C
 		fn()
 	}
+}
+
+// RateLimiterForHandlers returns a rate-limited version of any handler function. The handler will only be allowed to
+// execute once per specified `rate` interval. It supports handlers with any number of input arguments and return values.
+//
+// Example usage:
+//
+//	limitedHandler := it.RateLimiterForHandlers(1*time.Second, handler)
+//	result := limitedHandler(arg1, arg2)
+func RateLimiterForHandlers(rate time.Duration, fn interface{}) interface{} {
+	ticker := time.NewTicker(rate)
+	fnVal := reflect.ValueOf(fn)
+
+	return reflect.MakeFunc(fnVal.Type(), func(args []reflect.Value) []reflect.Value {
+		// Wait for the rate limit interval
+		<-ticker.C
+		// Call the original function and return its result
+		return fnVal.Call(args)
+	}).Interface()
 }
 
 // ===================================================
@@ -915,6 +935,7 @@ func RateLimiter(rate time.Duration, fn func()) func() {
 //
 //	it.InitFromEnv()
 func InitFromEnv() {
+
 	levelStr := os.Getenv("LOG_LEVEL")
 	switch levelStr {
 	case "TRACE":

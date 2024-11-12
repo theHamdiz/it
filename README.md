@@ -17,6 +17,7 @@ Utility Functions for Error Handling, Logging, and Retry Logic in Go
  • Logging  
  • Structured Logging  
  • Retry and Exponential Backoff  
+ • Rate Limiters  
  • Utility Functions  
  • Configuration  
  • Documentation  
@@ -251,7 +252,7 @@ func StructuredError(message string, data any)
 it.StructuredError("File not found", map[string]string{"filename": "config.yaml"})  
 ```
 
-#### Retry and Exponential Backoff  
+### Retry and Exponential Backoff  
 
 #### Retry  
 
@@ -275,15 +276,65 @@ defer cancel()
 err := it.RetryWithContext(ctx, 3, time.Second, SomeFunction)
 ```
 
-#### RetryExponentialWithCancellation  
+#### RetryExponentialWithContext  
 
  Retries a function with exponential backoff, doubling the delay after each attempt, but stops if the context is canceled.  
 
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)  
 defer cancel()  
-err := it.RetryExponentialWithCancellation(ctx, 5, time.Second, SomeFunction)  
+err := it.RetryExponentialWithContext(ctx, 5, time.Second, SomeFunction)  
 ```
+
+#### RateLimiter
+
+`RateLimiter` returns a rate-limited version of any `handler` function, allowing it to execute only once per specified rate interval. This function is designed to work with handlers of any type, including HTTP route handlers and custom functions with any signature.
+
+`func RateLimiter(rate time.Duration, fn interface{}) interface{}`  
+
+ • rate: The interval at which fn is allowed to execute. Only one call to fn will be allowed per rate period.  
+ • fn: The original handler function to be rate-limited. It can have any number and type of input arguments and return any type.  
+
+#### Returns  
+
+A rate-limited function that has the same signature as fn. The returned function will wait for the specified rate interval before each execution.
+
+#### Example Usage  
+
+With an HTTP Handler  
+
+```go
+func myHTTPHandler(w http.ResponseWriter, r *http.Request) {
+ w.Write([]byte("Hello, World!"))
+}
+
+limitedHandler := it.RateLimiter(1*time.Second, myHTTPHandler).(func(http.ResponseWriter, *http.Request))
+http.HandleFunc("/limited", limitedHandler)
+```
+
+In this example, `myHTTPHandler` is wrapped with `RateLimiter`, and it will execute at most once per second when called.
+
+With a Custom Function
+
+```go
+func customHandler(name string, age int) string {
+ return fmt.Sprintf("Name: %s, Age: %d", name, age)
+}
+
+limitedCustomHandler := it.RateLimiter(2*time.Second, customHandler).(func(string, int) string)
+result := limitedCustomHandler("Alice", 30)
+fmt.Println(result) // Output: "Name: Alice, Age: 30"
+```
+
+Here, customHandler is rate-limited to execute at most once every two seconds, regardless of how often limitedCustomHandler is called.  
+
+Notes  
+
+ • Generic Handler Support: RateLimiter is designed to work with any function signature, making it compatible with various handler types.  
+ • Type Assertion: Since RateLimiter returns an interface{}, you will need to use type assertion to call the wrapped function with the correct parameter and return types.  
+ • Rate Control: Calls to the returned function are delayed based on the specified rate, ensuring that fn is only invoked once per interval.  
+
+This documentation provides a clear overview of how to use RateLimiter in different contexts, ensuring flexibility and adaptability across different types of handlers.  
 
 #### Utility Functions  
 

@@ -108,7 +108,9 @@ func SomeNonCriticalFunction() (string, error) {
 
 	Adds contextual information to an error message, making it easier to track errors.
 
-`err := it.WrapWithContext(err, "processing file", map[string]string{"file": filename})`
+```go
+err := it.WrapWithContext(err, "processing file", map[string]string{"file": filename})
+```
 
 #### Logging
 
@@ -135,6 +137,40 @@ func SomeNonCriticalFunction() (string, error) {
 `it.Debug("Cache initialized")`
 `it.Trace("Entered function X")`
 
+---
+
+### LogStackTrace:
+
+Logs the current stack trace, which is helpful for debugging complex issues by displaying the call stack.
+
+```go
+func LogStackTrace()
+```
+
+**Example Usage:**
+
+```go
+it.LogStackTrace()
+```
+
+---
+
+### `LogErrorWithStack`
+
+Logs an error along with the current stack trace. This provides more detailed information to aid in debugging by capturing the error context and call stack.
+
+```go
+func LogErrorWithStack(err error)
+```
+
+- **`err`**: The error to log, along with its stack trace.
+
+**Example Usage:**
+
+```go
+it.LogErrorWithStack(err)
+```
+
 #### LogOnce
 
 	Logs a message only once, avoiding repetitive log entries in loops.
@@ -153,8 +189,67 @@ func SomeNonCriticalFunction() (string, error) {
 
 	Logs messages in JSON format with additional data.
 
-`userData := map[string]string{"username": "johndoe", "ip": "192.168.1.1"}
-it.StructuredInfo("User logged in", userData)`
+```go
+userData := map[string]string{"username": "johndoe", "ip": "192.168.1.1"}
+it.StructuredInfo("User logged in", userData)
+```
+
+---
+
+### StructuredDebug
+
+Logs a structured debug-level message in JSON format, useful for detailed logging with additional contextual data.
+
+```go
+func StructuredDebug(message string, data any)
+```
+
+- **`message`**: The debug message to log.
+- **`data`**: Additional contextual data in key-value format.
+
+**Example Usage:**
+
+```go
+it.StructuredDebug("Cache hit", map[string]string{"key": "user:1234"})
+```
+
+---
+
+### StructuredWarning
+
+Logs a structured warning message in JSON format with additional data. Useful for tracking non-critical issues in a structured way.
+
+```go
+func StructuredWarning(message string, data any)
+```
+
+- **`message`**: The warning message to log.
+- **`data`**: Additional key-value data to provide context.
+
+**Example Usage:**
+
+```go
+it.StructuredWarning("High memory usage detected", map[string]interface{}{"usage": 95})
+```
+
+---
+
+### StructuredError
+
+Logs an error message in JSON format with additional contextual data, useful for error tracking with structured logs.
+
+```go
+func StructuredError(message string, data any)
+```
+
+- **`message`**: The error message to log.
+- **`data`**: Additional context in a key-value format.
+
+**Example Usage:**
+
+```go
+it.StructuredError("File not found", map[string]string{"filename": "config.yaml"})
+```
 
 #### Retry and Exponential Backoff
 
@@ -215,6 +310,45 @@ err := it.RetryExponentialWithCancellation(ctx, 5, time.Second, SomeFunction)
 	Starts a timer and logs the execution time of a code block.
 
 `defer it.TimeBlock("main")()`
+
+---
+
+### GracefulShutdown
+
+Gracefully shuts down a server upon receiving an interrupt signal (e.g., Ctrl+C) within a specified timeout. It can be used with any server that has a `Shutdown` method that accepts a `context.Context`.
+
+```go
+func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration)
+```
+
+- **`ctx`**: The base context for shutdown, which can be `context.Background()` or another context.
+- **`server`**: The server object to shut down, which must have a `Shutdown` method that takes a `context.Context`.
+- **`timeout`**: The maximum time to wait for the server to shut down gracefully.
+
+**Example Usage:**
+
+```go
+it.GracefulShutdown(context.Background(), server, 5*time.Second)
+```
+---
+
+### GracefulRestart
+
+Gracefully restarts a server upon receiving an interrupt signal (e.g., SIGHUP) or other restart signal within a specified timeout. Like `GracefulShutdown`, it works with any server that has a `Shutdown` method.
+
+```go
+func GracefulRestart(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration)
+```
+
+- **`ctx`**: The context for shutdown, typically `context.Background()` or similar.
+- **`server`**: The server instance to restart, which must implement `Shutdown`.
+- **`timeout`**: The maximum time allowed for the graceful shutdown before restarting.
+
+**Example Usage:**
+
+```go
+it.GracefulRestart(context.Background(), server, 5*time.Second)
+```
 
 #### BufferedLogger
 

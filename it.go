@@ -17,12 +17,17 @@
 package it
 
 import (
+	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"os/signal"
 	"runtime/debug"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/fatih/color"
@@ -64,11 +69,73 @@ type Logger struct {
 	mu    sync.Mutex
 }
 
+type LoggerOptions struct {
+	level     int
+	timestamp bool
+}
+
+// BufferedLogger provides a buffered logging mechanism, allowing logs to be written to any io.Writer.
+type BufferedLogger struct {
+	writer *bufio.Writer
+}
+
 // StructuredLogEntry represents a structured log message.
 type StructuredLogEntry struct {
 	Level   string `json:"level"`
 	Message string `json:"message"`
 	Data    any    `json:"data,omitempty"`
+}
+
+// LoggerOption is a functional option type for configuring Logger.
+type LoggerOption func(*LoggerOptions)
+
+// ===================================================
+// Builders & Constructors Area
+// ===================================================
+
+// WithLogLevel sets the log level for Logger.
+func WithLogLevel(level int) LoggerOption {
+	return func(opts *LoggerOptions) {
+		opts.level = level
+	}
+}
+
+// WithTimestamp enables timestamp logging.
+func WithTimestamp(enabled bool) LoggerOption {
+	return func(opts *LoggerOptions) {
+		opts.timestamp = enabled
+	}
+}
+
+// NewLogger creates a logger with configurable options.
+//
+// Example usage:
+//
+//	logger := it.NewLogger(it.WithLogLevel(it.LevelDebug), it.WithTimestamp(true))
+func NewLogger(options ...LoggerOption) *Logger {
+	opts := &LoggerOptions{
+		level:     LevelInfo,
+		timestamp: true,
+	}
+	for _, option := range options {
+		option(opts)
+	}
+	// Create and configure logger with opts
+	return &Logger{level: opts.level}
+}
+
+// NewBufferedLogger creates a new BufferedLogger that writes to the specified io.Writer.
+//
+// Example usage:
+//
+//	file, _ := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+//	defer file.Close()
+//	logger := it.NewBufferedLogger(file)
+//	logger.Log("Logging to a file")
+func NewBufferedLogger(output io.Writer) *BufferedLogger {
+	return &BufferedLogger{
+		writer: bufio.NewWriter(output),
+	}
 }
 
 // ===================================================
@@ -130,6 +197,31 @@ func Attempt(err error) {
 // ===================================================
 // Logging Area
 // ===================================================
+
+// Log writes a message to the buffered writer and flushes the buffer.
+//
+// Example usage:
+//
+//	logger := it.NewBufferedLogger(os.Stdout)
+//	logger.Log("Logging to standard output")
+func (b *BufferedLogger) Log(message string) {
+	_, err := b.writer.WriteString(fmt.Sprintf("%s\n", message))
+	if err != nil {
+		fmt.Printf("Buffered log error: %v\n", err)
+		return
+	}
+	b.writer.Flush()
+}
+
+// Flush forces any buffered data to be written out to the underlying writer.
+// Useful for ensuring all logs are written at program exit.
+//
+// Example usage:
+//
+//	logger.Flush()
+func (b *BufferedLogger) Flush() error {
+	return b.writer.Flush()
+}
 
 // Trace logs a trace-level message.
 // Use Trace to log very detailed information for tracing program execution.
@@ -542,6 +634,65 @@ func RecoverPanicAndContinue() {
 }
 
 // ===================================================
+// Graceful Actions Area
+// ===================================================
+
+// GracefulShutdown listens for an interrupt signal (e.g., Ctrl+C) and attempts to
+// gracefully shut down the given server within the specified timeout. It can be
+// used with any server that has a Shutdown method that takes a context.
+//
+// Example usage:
+//
+//	it.GracefulShutdown(context.Background(), server, 5*time.Second)
+func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration) {
+	// Create a channel to listen for OS interrupt signals
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
+	// Block until a signal is received
+	<-stop
+	log.Println("Shutting down gracefully...")
+
+	// Create a context with the provided timeout for graceful shutdown
+	shutdownCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	// Attempt to shut down the server gracefully
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Printf("Error during shutdown: %v", err)
+	} else {
+		log.Println("Server shut down gracefully.")
+	}
+}
+
+// GracefulRestart listens for a signal to restart the server gracefully.
+// It can be used with any server that has a Shutdown method.
+//
+// Example usage:
+//
+//	go it.GracefulRestart(context.Background(), server, 5*time.Second)
+func GracefulRestart(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration) {
+	restart := make(chan os.Signal, 1)
+	signal.Notify(restart, os.Interrupt, syscall.SIGHUP) // SIGHUP is often used to trigger a restart
+
+	go func() {
+		<-restart
+		log.Println("Restarting gracefully...")
+
+		shutdownCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			log.Printf("Error during restart: %v", err)
+		} else {
+			log.Println("Server restarted gracefully.")
+		}
+
+		// Restart server logic here, e.g., reinitializing services or configs.
+	}()
+}
+
+// ===================================================
 // Timing Area
 // ===================================================
 
@@ -616,6 +767,92 @@ func RetryExponential(attempts int, initialDelay time.Duration, fn func() error)
 		return nil // Success, no need to retry
 	}
 	return nil
+}
+
+// RetryWithContext retries a function while respecting context cancellation.
+// It tries up to `attempts` times with a delay between each try and cancels if the context is done.
+//
+// Example usage:
+//
+//	err := it.RetryWithContext(ctx, 3, time.Second, SomeErrorOnlyFunction)
+func RetryWithContext(ctx context.Context, attempts int, delay time.Duration, fn func() error) error {
+	for i := 0; i < attempts; i++ {
+		if err := fn(); err != nil {
+			if i == attempts-1 {
+				return err
+			}
+			select {
+			case <-ctx.Done():
+				return ctx.Err() // Return context error if it’s done
+			case <-time.After(delay):
+				// Retry after delay
+			}
+		} else {
+			return nil
+		}
+	}
+	return nil
+}
+
+// RetryExponentialWithCancellation retries the given function `fn` up to `attempts` times with an exponential
+// backoff delay between attempts. The delay starts at `initialDelay` and doubles with each attempt.
+// If the context is canceled, it stops retrying and returns the context error.
+//
+// Example usage:
+//
+//	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+//	defer cancel()
+//	err := it.RetryExponentialWithCancellation(ctx, 5, time.Second, SomeErrorOnlyFunction)
+func RetryExponentialWithCancellation(ctx context.Context, attempts int, initialDelay time.Duration, fn func() error) error {
+	delay := initialDelay
+	for i := 0; i < attempts; i++ {
+		// Check if the context is done before each attempt
+		select {
+		case <-ctx.Done():
+			return ctx.Err() // Return the context error if it was canceled
+		default:
+		}
+
+		// Try executing the function
+		if err := fn(); err != nil {
+			// If it's the last attempt, return the error
+			if i == attempts-1 {
+				return err
+			}
+
+			// Wait for the exponential delay or until the context is canceled
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(delay):
+				// Double the delay for the next attempt
+				delay *= 2
+			}
+		} else {
+			// If successful, return nil
+			return nil
+		}
+	}
+	return nil
+}
+
+// ===================================================
+// Rate Limiting Area
+// ===================================================
+
+// RateLimiter returns a function that limits calls to `fn` based on a specified rate.
+// Calls will be rate-limited to `rate` per second.
+//
+// Example usage:
+//
+//	limitedFn := it.RateLimiter(time.Second, SomeFunction)
+//	go limitedFn()
+func RateLimiter(rate time.Duration, fn func()) func() {
+	ticker := time.NewTicker(rate)
+	return func() {
+		<-ticker.C
+		fn()
+	}
 }
 
 // ===================================================

@@ -25,7 +25,7 @@ Utility Functions for Error Handling, Logging, and Retry Logic in Go
 
 #### Overview
 
-it is a Go package providing utility functions for error handling, logging, and execution retries, simplifying common patterns while adhering to Go best practices. It offers a collection of functions to manage errors, structured logging, retries with exponential backoff, and other robust utilities.
+it is a Go package providing utility functions for error handling, logging, and execution retries, simplifying common patterns while adhering to Go best practices. It offers a collection of functions to manage errors, structured logging, retries with exponential backoff, and other robust utilities like graceful shutdown & restart of any server; with done notification as well as action functions to perform.
 
 #### Features
 
@@ -155,7 +155,7 @@ it.LogStackTrace()
 
 ---
 
-### `LogErrorWithStack`
+### LogErrorWithStack
 
 Logs an error along with the current stack trace. This provides more detailed information to aid in debugging by capturing the error context and call stack.  
 

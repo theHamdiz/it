@@ -313,42 +313,66 @@ err := it.RetryExponentialWithCancellation(ctx, 5, time.Second, SomeFunction)
 
 ---
 
-### GracefulShutdown
+#### GracefulShutdown
 
-Gracefully shuts down a server upon receiving an interrupt signal (e.g., Ctrl+C) within a specified timeout. It can be used with any server that has a `Shutdown` method that accepts a `context.Context`.  
+`GracefulShutdown` listens for an interrupt signal (e.g., `SIGINT` or `SIGTERM`) and attempts to gracefully shut down the given server within the specified timeout. If an action function is provided, it will execute this function after shutdown completes. If a done channel is provided, it will signal completion on the channel after the shutdown and executing the action.
+
+`func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration, done chan<- bool, action func())`
+
+ • `ctx`: The base context for shutdown, which can be `context.Background()` or another `context`.  
+ • `server`: The server object to shut down, which must have a Shutdown method that takes a `context.Context`.  
+ • `timeout`: The maximum time to wait for the server to shut down gracefully before forcing termination.  
+ • `done`: An optional channel to signal completion once the shutdown and action are complete. If done is nil, no notification is sent.  
+ • `action`: An optional function to execute after the server has shut down. This can be used for cleanup or other post-shutdown tasks. If action is nil, no action is performed.
+
+Example Usage:  
+
+ 1. Without a done channel or action:  
+
+`it.GracefulShutdown(context.Background(), server, 5*time.Second, nil, nil)`  
+
+ 2. With a done channel and action:  
 
 ```go
-func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration)  
-```
-
-- **`ctx`**: The base context for shutdown, which can be `context.Background()` or another context.  
-- **`server`**: The server object to shut down, which must have a `Shutdown` method that takes a `context.Context`.  
-- **`timeout`**: The maximum time to wait for the server to shut down gracefully.  
-
-**Example Usage:**  
-
-```go
-it.GracefulShutdown(context.Background(), server, 5*time.Second)  
+done := make(chan bool)
+cleanupAction := func() {
+    log.Println("Performing post-shutdown cleanup...")
+    // Additional cleanup code here
+}
+go it.GracefulShutdown(context.Background(), server, 5*time.Second, done, cleanupAction)
+<-done // Wait for the shutdown process to complete
 ```
 
 ---
 
-### GracefulRestart  
+#### GracefulRestart
 
-Gracefully restarts a server upon receiving an interrupt signal (e.g., SIGHUP) or other restart signal within a specified timeout. Like `GracefulShutdown`, it works with any server that has a `Shutdown` method.  
+`GracefulRestart` listens for a signal to restart the server gracefully. It attempts to shut down the given server within the specified timeout and then optionally performs an action before signaling completion on the done channel, if provided.
+
+`func GracefulRestart(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration, done chan<- bool, action func())`
+
+ • `ctx`: The context for shutdown, typically `context.Background()` or similar.  
+ • `server`: The server instance to restart, which must implement a Shutdown method.  
+ • `timeout`: The maximum time allowed for the graceful shutdown before initiating a restart.  
+ • `done`: An optional channel to signal completion once the shutdown, action, and restart are complete. If done is nil, no notification is sent.  
+ • `action`: An optional function to execute after the server has shut down. This can be used to reinitialize services, reload configurations, or perform any other custom restart logic. If action is nil, no action is performed.  
+
+Example Usage:  
+
+ 1. Without a done channel or action:  
+
+`it.GracefulRestart(context.Background(), server, 5*time.Second, nil, nil)`  
+
+ 2. With a done channel and an action:  
 
 ```go
-func GracefulRestart(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration)  
-```
-
-- **`ctx`**: The context for shutdown, typically `context.Background()` or similar.  
-- **`server`**: The server instance to restart, which must implement `Shutdown`.  
-- **`timeout`**: The maximum time allowed for the graceful shutdown before restarting.  
-
-**Example Usage:**  
-
-```go
-it.GracefulRestart(context.Background(), server, 5*time.Second)  
+done := make(chan bool)
+restartAction := func() {
+    log.Println("Performing custom restart actions...")
+    // Additional initialization or setup code here
+}
+go it.GracefulRestart(context.Background(), server, 5*time.Second, done, restartAction)
+<-done // Wait for the restart process to complete
 ```
 
 #### BufferedLogger  

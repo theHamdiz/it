@@ -637,21 +637,29 @@ func RecoverPanicAndContinue() {
 // Graceful Actions Area
 // ===================================================
 
-// GracefulShutdown listens for an interrupt signal (e.g., Ctrl+C) and attempts to
-// gracefully shut down the given server within the specified timeout. It can be
-// used with any server that has a Shutdown method that takes a context.
+// GracefulShutdown listens for an interrupt signal (e.g., SIGINT or SIGTERM) and attempts to
+// gracefully shut down the given server within the specified timeout. If an `action` function
+// is provided, it will be executed after shutdown completes. If a `done` channel is provided,
+// it will signal completion on the channel after shutdown and executing the action.
 //
 // Example usage:
 //
-//	it.GracefulShutdown(context.Background(), server, 5*time.Second)
-func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration) {
+//	it.GracefulShutdown(context.Background(), server, 5*time.Second, nil, nil)
+//
+// Or with a done channel and an action function:
+//
+//	done := make(chan bool)
+//	cleanupAction := func() { log.Println("Performing post-shutdown cleanup...") }
+//	go it.GracefulShutdown(context.Background(), server, 5*time.Second, done, cleanupAction)
+//	<-done
+func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration, done chan<- bool, action func()) {
 	// Create a channel to listen for OS interrupt signals
 	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM) // Listen for SIGINT and SIGTERM signals
 
 	// Block until a signal is received
 	<-stop
-	log.Println("Shutting down gracefully...")
+	Info("Shutting down gracefully...")
 
 	// Create a context with the provided timeout for graceful shutdown
 	shutdownCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -659,9 +667,21 @@ func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Co
 
 	// Attempt to shut down the server gracefully
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Printf("Error during shutdown: %v", err)
+		Errorf("Error during shutdown: %v", err)
 	} else {
-		log.Println("Server shut down gracefully.")
+		Info("Server shut down gracefully.")
+	}
+
+	// Execute the optional action if provided
+	if action != nil {
+		action()
+	} else {
+		Warn("No post-shutdown action provided.")
+	}
+
+	// Notify the done channel, if provided
+	if done != nil {
+		done <- true
 	}
 }
 
@@ -671,24 +691,51 @@ func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Co
 // Example usage:
 //
 //	go it.GracefulRestart(context.Background(), server, 5*time.Second)
-func GracefulRestart(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration) {
+//
+// GracefulRestart listens for a signal to restart the server gracefully. It attempts to
+// shut down the given server within the specified timeout and then optionally performs an
+// action before signaling completion on the `done` channel, if provided.
+//
+// Example usage:
+//
+//	it.GracefulRestart(context.Background(), server, 5*time.Second, nil, nil)
+//
+// Or with a done channel and an action function:
+//
+//	done := make(chan bool)
+//	restartAction := func() { log.Println("Performing custom restart actions...") }
+//	go it.GracefulRestart(context.Background(), server, 5*time.Second, done, restartAction)
+//	<-done
+func GracefulRestart(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration, done chan<- bool, action func()) {
 	restart := make(chan os.Signal, 1)
-	signal.Notify(restart, os.Interrupt, syscall.SIGHUP) // SIGHUP is often used to trigger a restart
+	signal.Notify(restart, os.Interrupt, syscall.SIGHUP) // Listen for interrupt and SIGHUP signals for restart
 
 	go func() {
 		<-restart
-		log.Println("Restarting gracefully...")
+		Info("Gracefully restarting...")
 
+		// Create a context with the specified timeout for graceful shutdown
 		shutdownCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 
+		// Attempt to shut down the server gracefully
 		if err := server.Shutdown(shutdownCtx); err != nil {
-			log.Printf("Error during restart: %v", err)
+			Errorf("Error during shutdown for restart: %v", err)
 		} else {
-			log.Println("Server restarted gracefully.")
+			Info("Server shut down gracefully.")
 		}
 
-		// Restart server logic here, e.g., reinitializing services or configs.
+		// Execute the optional action if provided
+		if action != nil {
+			action()
+		} else {
+			Warn("No post-shutdown action provided.")
+		}
+
+		// Notify the done channel, if provided
+		if done != nil {
+			done <- true
+		}
 	}()
 }
 

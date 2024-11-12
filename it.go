@@ -38,6 +38,16 @@ const (
 	LevelFatal
 )
 
+var (
+	logOutput    = os.Stdout                 // Default to standard output
+	logger       = &Logger{level: LevelInfo} // Default log level
+	magentaColor = color.New(color.FgMagenta)
+	blueColor    = color.New(color.FgBlue)
+	redColor     = color.New(color.FgRed)
+	cyanColor    = color.New(color.FgCyan)
+	yellowColor  = color.New(color.FgYellow)
+)
+
 // Logger struct to manage log level
 type Logger struct {
 	level int
@@ -50,16 +60,6 @@ type StructuredLogEntry struct {
 	Message string `json:"message"`
 	Data    any    `json:"data,omitempty"`
 }
-
-var (
-	logOutput    = os.Stdout                 // Default to standard output
-	logger       = &Logger{level: LevelInfo} // Default log level
-	magentaColor = color.New(color.FgMagenta)
-	blueColor    = color.New(color.FgBlue)
-	redColor     = color.New(color.FgRed)
-	cyanColor    = color.New(color.FgCyan)
-	yellowColor  = color.New(color.FgYellow)
-)
 
 // SetLogOutput sets the output destination for logs.
 // It can be a file, os.Stdout, os.Stderr, or any io.Writer.

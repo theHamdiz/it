@@ -8,20 +8,20 @@ Utility Functions for Error Handling, Logging, and Retry Logic in Go
 
 ### Table of Contents
 
-	•	Overview
-	•	Features
-	•	Installation
-	•	Quick Start
-	•	Usage Examples
-	•	Error Handling
-	•	Logging
-	•	Structured Logging
-	•	Retry and Exponential Backoff
-	•	Utility Functions
-	•	Configuration
-	•	Documentation
-	•	Contributing
-	•	License
+ • Overview
+ • Features
+ • Installation
+ • Quick Start
+ • Usage Examples
+ • Error Handling
+ • Logging
+ • Structured Logging
+ • Retry and Exponential Backoff
+ • Utility Functions
+ • Configuration
+ • Documentation
+ • Contributing
+ • License
 
 #### Overview
 
@@ -29,12 +29,12 @@ it is a Go package providing utility functions for error handling, logging, and 
 
 #### Features
 
-	•	Simplified error handling with Must and Should
-	•	Logging functions for different log levels: Trace, Debug, Info, Warn, Error, and Fatal
-	•	Structured logging in JSON format for easy parsing and analysis
-	•	Configurable log levels, outputs, and color-coded console output
-	•	Utility functions for retry mechanisms, exponential backoff, and context-based retries
-	•	Enhanced error wrapping, panic recovery, and timing functions
+ • Simplified error handling with Must and Should
+ • Logging functions for different log levels: Trace, Debug, Info, Warn, Error, and Fatal
+ • Structured logging in JSON format for easy parsing and analysis
+ • Configurable log levels, outputs, and color-coded console output
+ • Utility functions for retry mechanisms, exponential backoff, and context-based retries
+ • Enhanced error wrapping, panic recovery, and timing functions
 
 ### Installation
 
@@ -82,31 +82,31 @@ func SomeNonCriticalFunction() (string, error) {
 
 #### Must
 
-	Use Must when an error is unrecoverable and should halt the program execution.
+ Use Must when an error is unrecoverable and should halt the program execution.
 
 `result := it.Must(SomeFunction())`
 
 #### Should
 
-	Use Should when you want to log an error but continue execution.
+ Use Should when you want to log an error but continue execution.
 
 `result := it.Should(SomeFunction())`
 
 #### Ensure
 
-	Panics if err is not nil. Use it when a critical error cannot be recovered.
+ Panics if err is not nil. Use it when a critical error cannot be recovered.
 
 `it.Ensure(SomeCriticalFunction())`
 
 #### Attempt
 
-	Logs the error but continues execution. Use it for non-critical errors.
+ Logs the error but continues execution. Use it for non-critical errors.
 
 `it.Attempt(SomeFunction())`
 
 #### WrapWithContext
 
-	Adds contextual information to an error message, making it easier to track errors.
+ Adds contextual information to an error message, making it easier to track errors.
 
 ```go
 err := it.WrapWithContext(err, "processing file", map[string]string{"file": filename})
@@ -116,30 +116,30 @@ err := it.WrapWithContext(err, "processing file", map[string]string{"file": file
 
 #### Basic Logging
 
-`it.Info("Application started")`
-`it.Warn("Low disk space")`
-`it.Error("Failed to connect to database")`
+`it.Info("Application started")`  
+`it.Warn("Low disk space")`  
+`it.Error("Failed to connect to database")`  
 
 #### Formatted Logging
 
-`it.Infof("Server started on port %d", port)`
-`it.Warnf("Disk space low: %d%% remaining", diskSpace)`
-`it.Errorf("Error %d: %s", errorCode, errorMessage)`
+`it.Infof("Server started on port %d", port)`  
+`it.Warnf("Disk space low: %d%% remaining", diskSpace)`  
+`it.Errorf("Error %d: %s", errorCode, errorMessage)`  
 
 `Debug` and `Trace` Logging
 
-	Set the log level to include debug and trace messages:
+ Set the log level to include debug and trace messages:
 
 `it.SetLogLevel(it.LevelDebug)`
 
-#### Log messages:
+#### Log messages
 
-`it.Debug("Cache initialized")`
-`it.Trace("Entered function X")`
+`it.Debug("Cache initialized")`  
+`it.Trace("Entered function X")`  
 
 ---
 
-### LogStackTrace:
+### LogStackTrace
 
 Logs the current stack trace, which is helpful for debugging complex issues by displaying the call stack.
 
@@ -173,13 +173,13 @@ it.LogErrorWithStack(err)
 
 #### LogOnce
 
-	Logs a message only once, avoiding repetitive log entries in loops.
+ Logs a message only once, avoiding repetitive log entries in loops.
 
 `it.LogOnce("This message will only be logged once")`
 
 #### Audit
 
-	Logs an audit-specific message for tracking important actions.
+ Logs an audit-specific message for tracking important actions.
 
 `it.Audit("User login attempt recorded")`
 
@@ -187,7 +187,7 @@ it.LogErrorWithStack(err)
 
 #### Structured Info
 
-	Logs messages in JSON format with additional data.
+ Logs messages in JSON format with additional data.
 
 ```go
 userData := map[string]string{"username": "johndoe", "ip": "192.168.1.1"}
@@ -255,19 +255,19 @@ it.StructuredError("File not found", map[string]string{"filename": "config.yaml"
 
 #### Retry
 
-	Retries a function with a fixed delay. Useful for handling transient errors.
+ Retries a function with a fixed delay. Useful for handling transient errors.
 
 `err := it.Retry(3, time.Second, SomeFunction)`
 
 #### RetryExponential
 
-	Retries a function with exponential backoff, doubling the delay after each attempt.
+ Retries a function with exponential backoff, doubling the delay after each attempt.
 
 `err := it.RetryExponential(5, time.Second, SomeFunction)`
 
 #### RetryWithContext
 
-	Retries a function with a fixed delay, stopping if the context is canceled.
+ Retries a function with a fixed delay, stopping if the context is canceled.
 
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -277,7 +277,7 @@ err := it.RetryWithContext(ctx, 3, time.Second, SomeFunction)
 
 #### RetryExponentialWithCancellation
 
-	Retries a function with exponential backoff, doubling the delay after each attempt, but stops if the context is canceled.
+ Retries a function with exponential backoff, doubling the delay after each attempt, but stops if the context is canceled.
 
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -289,25 +289,25 @@ err := it.RetryExponentialWithCancellation(ctx, 5, time.Second, SomeFunction)
 
 #### WaitFor
 
-	Waits until a specified condition is met or times out.
+ Waits until a specified condition is met or times out.
 
 `it.WaitFor(time.Second*10, func() bool { return someCondition() })`
 
 #### DeferWithLog
 
-	Creates a deferred function that logs a message upon completion, helpful for complex defer chains.
+ Creates a deferred function that logs a message upon completion, helpful for complex defer chains.
 
 `defer it.DeferWithLog("Cleanup complete")()`
 
 #### TimeFunction
 
-	Measures and logs the execution time of a function.
+ Measures and logs the execution time of a function.
 
 `it.TimeFunction("compute", compute)`
 
 #### TimeBlock
 
-	Starts a timer and logs the execution time of a code block.
+ Starts a timer and logs the execution time of a code block.
 
 `defer it.TimeBlock("main")()`
 
@@ -330,6 +330,7 @@ func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Co
 ```go
 it.GracefulShutdown(context.Background(), server, 5*time.Second)
 ```
+
 ---
 
 ### GracefulRestart
@@ -352,7 +353,7 @@ it.GracefulRestart(context.Background(), server, 5*time.Second)
 
 #### BufferedLogger
 
-	Logs to any specified writer with buffering, supporting os.Stdout, file, or custom io.Writer.
+ Logs to any specified writer with buffering, supporting os.Stdout, file, or custom io.Writer.
 
 ```go
 file, _ := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -378,14 +379,15 @@ Control verbosity of logs:
 
 `it.SetLogLevel(it.LevelInfo)`
 
-#### Available levels:
-	•	it.LevelTrace
-	•	it.LevelDebug
-	•	it.LevelInfo
-	•	it.LevelWarn
-	•	it.LevelError
-	•	it.LevelFatal
-	•	it.LevelAudit
+#### Available levels
+
+ • it.LevelTrace
+ • it.LevelDebug
+ • it.LevelInfo
+ • it.LevelWarn
+ • it.LevelError
+ • it.LevelFatal
+ • it.LevelAudit
 
 #### Environment Variables
 
@@ -397,9 +399,10 @@ os.Setenv("LOG_FILE", "app.log")
 it.InitFromEnv()
 ```
 
-#### Supported variables:
-	•	LOG_LEVEL: TRACE, DEBUG, INFO, WARN, ERROR, FATAL
-	•	LOG_FILE: Path to a file for log output
+#### Supported variables
+
+ • LOG_LEVEL: TRACE, DEBUG, INFO, WARN, ERROR, FATAL
+ • LOG_FILE: Path to a file for log output
 
 #### Documentation
 
@@ -408,11 +411,12 @@ For detailed documentation of all functions, visit the GoDoc page.
 #### Contributing
 
 Contributions are welcome! Please submit issues and pull requests for bug fixes, enhancements, or new features.
-	1.	Fork the repository.
-	2.	Create a new branch (git checkout -b feature/your-feature).
-	3.	Commit your changes (git commit -am 'Add new feature').
-	4.	Push to the branch (git push origin feature/your-feature).
-	5.	Open a pull request.
+
+ 1. Fork the repository.
+ 2. Create a new branch (git checkout -b feature/your-feature).
+ 3. Commit your changes (git commit -am 'Add new feature').
+ 4. Push to the branch (git push origin feature/your-feature).
+ 5. Open a pull request.
 
 Please ensure your code adheres to Go conventions and includes tests where appropriate.
 

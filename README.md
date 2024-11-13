@@ -116,12 +116,12 @@ it.Ensure(SomeCriticalFunction())
 it.Attempt(SomeFunction())
 ```
 
-#### WrapWithContext
+#### WrapError
 
  Adds contextual information to an error message, making it easier to track errors.
 
 ```go
-err := it.WrapWithContext(err, "processing file", map[string]string{"file": filename})
+err := it.WrapError(err, "processing file", map[string]string{"file": filename})
 ```
 
 #### Logging

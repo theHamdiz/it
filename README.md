@@ -45,7 +45,9 @@ To install the it package, use go get:
 
 Import the package in your Go code:
 
-`import "github.com/theHamdiz/it"`
+```go
+import "github.com/theHamdiz/it"
+```
 
 ### Quick Start
 
@@ -85,25 +87,33 @@ func SomeNonCriticalFunction() (string, error) {
 
  Use Must when an error is unrecoverable and should halt the program execution.
 
-`result := it.Must(SomeFunction())`
+```go
+result := it.Must(SomeFunction())
+`
 
 #### Should
 
  Use Should when you want to log an error but continue execution.
 
-`result := it.Should(SomeFunction())`
+```go
+ result := it.Should(SomeFunction())
+ ```
 
 #### Ensure
 
  Panics if err is not nil. Use it when a critical error cannot be recovered.
 
-`it.Ensure(SomeCriticalFunction())`
+```go
+it.Ensure(SomeCriticalFunction())
+```
 
 #### Attempt
 
  Logs the error but continues execution. Use it for non-critical errors.
 
-`it.Attempt(SomeFunction())`
+```go
+it.Attempt(SomeFunction())
+```
 
 #### WrapWithContext
 
@@ -117,26 +127,35 @@ err := it.WrapWithContext(err, "processing file", map[string]string{"file": file
 
 #### Basic Logging
 
-`it.Info("Application started")`  
-`it.Warn("Low disk space")`  
-`it.Error("Failed to connect to database")`  
+```go
+it.Info("Application started")  
+it.Warn("Low disk space")  
+it.Error("Failed to connect to database")
+```  
 
 #### Formatted Logging
 
-`it.Infof("Server started on port %d", port)`  
-`it.Warnf("Disk space low: %d%% remaining", diskSpace)`  
-`it.Errorf("Error %d: %s", errorCode, errorMessage)`  
+```go
+it.Infof("Server started on port %d", port)  
+it.Warnf("Disk space low: %d%% remaining", diskSpace)  
+it.Errorf("Error %d: %s", errorCode, errorMessage)
+```  
 
 `Debug` and `Trace` Logging  
 
  Set the log level to include debug and trace messages:  
 
-`it.SetLogLevel(it.LevelDebug)`  
+```go
+it.SetLogLevel(it.LevelDebug)
+```  
 
 #### Log messages
 
-`it.Debug("Cache initialized")`  
-`it.Trace("Entered function X")`  
+```go
+it.Debug("Cache initialized")
+ 
+it.Trace("Entered function X")  
+```
 
 ---
 
@@ -176,13 +195,17 @@ it.LogErrorWithStack(err)
 
  Logs a message only once, avoiding repetitive log entries in loops.  
 
-`it.LogOnce("This message will only be logged once")`  
+```go
+it.LogOnce("This message will only be logged once")
+```  
 
 #### Audit
 
  Logs an audit-specific message for tracking important actions.  
 
-`it.Audit("User login attempt recorded")`  
+```go
+ it.Audit("User login attempt recorded")
+```  
 
 #### Structured Logging
 
@@ -340,25 +363,33 @@ Notes
 
  Waits until a specified condition is met or times out.  
 
-`it.WaitFor(time.Second*10, func() bool { return someCondition() })`  
+```go
+it.WaitFor(time.Second*10, func() bool { return someCondition() })
+`  
 
 #### DeferWithLog  
 
  Creates a deferred function that logs a message upon completion, helpful for complex defer chains.  
 
-`defer it.DeferWithLog("Cleanup complete")()`  
+```go
+defer it.DeferWithLog("Cleanup complete")()
+```  
 
 #### TimeFunction  
 
  Measures and logs the execution time of a function.  
 
-`it.TimeFunction("compute", compute)`  
+```go
+it.TimeFunction("compute", compute)
+```  
 
 #### TimeBlock  
 
  Starts a timer and logs the execution time of a code block.  
 
-`defer it.TimeBlock("main")()`  
+```go
+defer it.TimeBlock("main")()
+```  
 
 ---
 
@@ -378,7 +409,9 @@ Example Usage:
 
  1. Without a done channel or action:  
 
-`it.GracefulShutdown(context.Background(), server, 5*time.Second, nil, nil)`  
+```go
+it.GracefulShutdown(context.Background(), server, 5*time.Second, nil, nil)
+```  
 
  2. With a done channel and action:  
 
@@ -410,7 +443,9 @@ Example Usage:
 
  1. Without a done channel or action:  
 
-`it.GracefulRestart(context.Background(), server, 5*time.Second, nil, nil)`  
+```go
+it.GracefulRestart(context.Background(), server, 5*time.Second, nil, nil)
+```  
 
  2. With a done channel and an action:  
 
@@ -450,7 +485,9 @@ it.SetLogOutput(file)
 
 Control verbosity of logs:  
 
-`it.SetLogLevel(it.LevelInfo)`  
+```go
+it.SetLogLevel(it.LevelInfo)
+```  
 
 #### Available levels  
 

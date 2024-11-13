@@ -334,8 +334,6 @@ Notes
  • Type Assertion: Since RateLimiter returns an interface{}, you will need to use type assertion to call the wrapped function with the correct parameter and return types.  
  • Rate Control: Calls to the returned function are delayed based on the specified rate, ensuring that fn is only invoked once per interval.  
 
-This documentation provides a clear overview of how to use RateLimiter in different contexts, ensuring flexibility and adaptability across different types of handlers.  
-
 #### Utility Functions  
 
 #### WaitFor  

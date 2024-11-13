@@ -365,7 +365,7 @@ Notes
 
 ```go
 it.WaitFor(time.Second*10, func() bool { return someCondition() })
-`  
+```  
 
 #### DeferWithLog  
 

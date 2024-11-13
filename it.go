@@ -888,29 +888,14 @@ func RetryExponentialWithContext(ctx context.Context, attempts int, initialDelay
 // Rate Limiting Area
 // ===================================================
 
-// RateLimiter returns a function that limits calls to `fn` based on a specified rate.
-// Calls will be rate-limited to `rate` per second.
-//
-// Example usage:
-//
-//	limitedFn := it.RateLimiter(time.Second, SomeFunction)
-//	go limitedFn()
-func RateLimiter(rate time.Duration, fn func(data interface{})) func() {
-	ticker := time.NewTicker(rate)
-	return func() {
-		<-ticker.C
-		fn()
-	}
-}
-
-// RateLimiterForHandlers returns a rate-limited version of any handler function. The handler will only be allowed to
+// RateLimiter returns a rate-limited version of any handler function. The handler will only be allowed to
 // execute once per specified `rate` interval. It supports handlers with any number of input arguments and return values.
 //
 // Example usage:
 //
-//	limitedHandler := it.RateLimiterForHandlers(1*time.Second, handler)
+//	limitedHandler := it.RateLimiter(1*time.Second, handler)
 //	result := limitedHandler(arg1, arg2)
-func RateLimiterForHandlers(rate time.Duration, fn interface{}) interface{} {
+func RateLimiter(rate time.Duration, fn interface{}) interface{} {
 	ticker := time.NewTicker(rate)
 	fnVal := reflect.ValueOf(fn)
 

@@ -28,6 +28,7 @@ import (
 	"reflect"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -50,7 +51,8 @@ const (
 )
 
 var (
-	logOutput    = os.Stdout                 // Default to standard output
+	logOutput    atomic.Value
+	output       io.Writer
 	logger       = &Logger{level: LevelInfo} // Default log level
 	magentaColor = color.New(color.FgMagenta)
 	blueColor    = color.New(color.FgBlue)
@@ -66,8 +68,7 @@ var (
 
 // Logger struct to manage log level
 type Logger struct {
-	level int
-	mu    sync.Mutex
+	level int32
 }
 
 type LoggerOptions struct {
@@ -122,7 +123,7 @@ func NewLogger(options ...LoggerOption) *Logger {
 		option(opts)
 	}
 	// Create and configure logger with opts
-	return &Logger{level: opts.level}
+	return &Logger{level: int32(opts.level)}
 }
 
 // NewBufferedLogger creates a new BufferedLogger that writes to the specified io.Writer.
@@ -232,7 +233,7 @@ func (b *BufferedLogger) Flush() error {
 //	it.Trace("Entering function X")
 func Trace(message string) {
 	if logger.level <= LevelTrace {
-		_, err := magentaColor.Fprintf(logOutput, "> Trace: %s\n", message)
+		_, err := magentaColor.Fprintf(output, "> Trace: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -247,7 +248,7 @@ func Trace(message string) {
 //	it.Tracef("Processing item %d of %d", currentItem, totalItems)
 func Tracef(format string, args ...interface{}) {
 	if logger.level <= LevelTrace {
-		_, err := magentaColor.Fprintf(logOutput, "> Trace: "+format+"\n", args...)
+		_, err := magentaColor.Fprintf(output, "> Trace: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -262,7 +263,7 @@ func Tracef(format string, args ...interface{}) {
 //	it.Debug("Loaded configuration successfully")
 func Debug(message string) {
 	if logger.level <= LevelDebug {
-		_, err := blueColor.Fprintf(logOutput, "> Debug: %s\n", message)
+		_, err := blueColor.Fprintf(output, "> Debug: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -319,7 +320,7 @@ func CheckError(err error) {
 //	it.Info("Starting the application")
 func Info(message string) {
 	if logger.level <= LevelInfo {
-		_, err := cyanColor.Fprintf(logOutput, "> Info: %s\n", message)
+		_, err := cyanColor.Fprintf(output, "> Info: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -334,7 +335,7 @@ func Info(message string) {
 //	it.Infof("Starting the application version %s", version)
 func Infof(format string, args ...interface{}) {
 	if logger.level <= LevelInfo {
-		_, err := cyanColor.Fprintf(logOutput, "> Info: "+format+"\n", args...)
+		_, err := cyanColor.Fprintf(output, "> Info: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -350,7 +351,7 @@ func Infof(format string, args ...interface{}) {
 //	it.Warn("Configuration file not found, using defaults")
 func Warn(message string) {
 	if logger.level <= LevelWarning {
-		_, err := yellowColor.Fprintf(logOutput, "> Warning: %s\n", message)
+		_, err := yellowColor.Fprintf(output, "> Warning: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -365,7 +366,7 @@ func Warn(message string) {
 //	it.Warnf("Configuration file %s not found, using defaults", configFile)
 func Warnf(format string, args ...interface{}) {
 	if logger.level <= LevelWarning {
-		_, err := yellowColor.Fprintf(logOutput, "> Warning: "+format+"\n", args...)
+		_, err := yellowColor.Fprintf(output, "> Warning: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -380,7 +381,7 @@ func Warnf(format string, args ...interface{}) {
 //	it.Error("Failed to connect to the database")
 func Error(message string) {
 	if logger.level <= LevelError {
-		_, err := redColor.Fprintf(logOutput, "> Error: %s\n", message)
+		_, err := redColor.Fprintf(output, "> Error: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -395,7 +396,7 @@ func Error(message string) {
 //	it.Errorf("Failed to connect to the database: %v", err)
 func Errorf(format string, args ...interface{}) {
 	if logger.level <= LevelError {
-		_, err := redColor.Fprintf(logOutput, "> Error: "+format+"\n", args...)
+		_, err := redColor.Fprintf(output, "> Error: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -415,6 +416,10 @@ func CheckErrorf(err error, format string, args ...interface{}) {
 	}
 }
 
+var jsonBufferPool = sync.Pool{
+	New: func() any { return new(json.Encoder) },
+}
+
 // StructuredLog logs a message with a specified level in a structured format.
 // Use StructuredLog to log messages with additional data for any log level.
 //
@@ -422,23 +427,14 @@ func CheckErrorf(err error, format string, args ...interface{}) {
 //
 //	it.StructuredLog("ERROR", "Failed to process request", map[string]interface{}{"requestID": "abc123", "error": err})
 func StructuredLog(level string, message string, data any) {
-	if shouldLogLevel(level) {
-		entry := StructuredLogEntry{
-			Level:   level,
-			Message: message,
-			Data:    data,
-		}
-		jsonData, err := json.Marshal(entry)
+	if shouldLogLevel(getLevelInt(level)) {
+		entry := StructuredLogEntry{Level: level, Message: message, Data: data}
+		buf := jsonBufferPool.Get().(*json.Encoder)
+		defer jsonBufferPool.Put(buf)
+
+		err := buf.Encode(entry)
 		if err != nil {
-			_, err := fmt.Fprintf(logOutput, "> Error: Failed to marshal log entry: %v\n", err)
-			if err != nil {
-				return
-			}
-			return
-		}
-		_, err = fmt.Fprintln(logOutput, string(jsonData))
-		if err != nil {
-			return
+			Errorf("Error encoding structured log: %v", err)
 		}
 	}
 }
@@ -490,38 +486,15 @@ func StructuredError(message string, data interface{}) {
 //
 // Example usage:
 //
-//	return it.WrapError(err, "failed to open file")
-func WrapError(err error, message string) error {
-	if err != nil {
-		return fmt.Errorf("%s: %w", message, err)
+//	return it.WrapError(err, "failed to open file", ctx)
+func WrapError(err error, message string, args ...interface{}) error {
+	if err == nil {
+		return nil
 	}
-	return nil
-}
-
-// WrapErrorf wraps an error with a formatted message.
-// Use WrapErrorf to add formatted context to an error.
-//
-// Example usage:
-//
-//	return it.WrapErrorf(err, "failed to open file %s", filename)
-func WrapErrorf(err error, format string, args ...interface{}) error {
-	if err != nil {
-		return fmt.Errorf(format+": %w", append(args, err)...)
+	if len(args) > 0 {
+		message = fmt.Sprintf(message, args...)
 	}
-	return nil
-}
-
-// WrapErrorWithContext wraps an error with additional contextual information.
-// Useful for adding more details to errors without losing the original error.
-//
-// Example usage:
-//
-//	err := it.WrapErrorWithContext(err, "processing file", map[string]string{"file": filename})
-func WrapErrorWithContext(err error, message string, context map[string]string) error {
-	if err != nil {
-		return fmt.Errorf("%s: %w [context: %v]", message, err, context)
-	}
-	return nil
+	return fmt.Errorf("%s: %w", message, err)
 }
 
 // LogStackTrace logs the current stack trace.
@@ -559,7 +532,7 @@ func LogErrorWithStack(err error) {
 //	it.Audit("User login attempt recorded")
 func Audit(message string) {
 	if logger.level <= LevelAudit {
-		_, err := fmt.Fprintf(logOutput, "> Audit: %s\n", message)
+		_, err := fmt.Fprintf(output, "> Audit: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -654,33 +627,32 @@ func RecoverPanicAndContinue() {
 //	go it.GracefulShutdown(context.Background(), server, 5*time.Second, done, cleanupAction)
 //	<-done
 func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Context) error }, timeout time.Duration, done chan<- bool, action func()) {
-	// Create a channel to listen for OS interrupt signals
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM) // Listen for SIGINT and SIGTERM signals
-
-	// Block until a signal is received
-	<-stop
-	Info("Shutting down gracefully...")
-
-	// Create a context with the provided timeout for graceful shutdown
-	shutdownCtx, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Attempt to shut down the server gracefully
+	go func() {
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+		<-stop
+		cancel()
+	}()
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(ctx, timeout)
+	defer shutdownCancel()
+
+	// Attempt shutdown
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		Errorf("Error during shutdown: %v", err)
 	} else {
 		Info("Server shut down gracefully.")
 	}
 
-	// Execute the optional action if provided
 	if action != nil {
 		action()
 	} else {
 		Warn("No post-shutdown action provided.")
 	}
 
-	// Notify the done channel, if provided
 	if done != nil {
 		done <- true
 	}
@@ -955,6 +927,8 @@ func InitFromEnv() {
 // init sets the logger to include standard flags along with the filename and line number.
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	logOutput.Store(io.Writer(os.Stdout)) // Default to stdout
+	output = logOutput.Load().(io.Writer)
 }
 
 // SetLogOutput sets the output destination for logs.
@@ -968,10 +942,8 @@ func init() {
 //	}
 //	defer file.Close()
 //	it.SetLogOutput(file)
-func SetLogOutput(output *os.File) {
-	logger.mu.Lock()
-	defer logger.mu.Unlock()
-	logOutput = output
+func SetLogOutput(newOutput *os.File) {
+	logOutput.Store(newOutput)
 }
 
 // SetLogLevel sets the minimum log level for logging.
@@ -991,9 +963,7 @@ func SetLogOutput(output *os.File) {
 //
 //	it.SetLogLevel(it.LevelDebug)
 func SetLogLevel(level int) {
-	logger.mu.Lock()
-	defer logger.mu.Unlock()
-	logger.level = level
+	atomic.StoreInt32(&logger.level, int32(level))
 }
 
 // ===================================================
@@ -1001,14 +971,27 @@ func SetLogLevel(level int) {
 // ===================================================
 
 // Helper function to check log level
-func shouldLogLevel(level string) bool {
-	levelMap := map[string]int{
-		"TRACE": LevelTrace,
-		"DEBUG": LevelDebug,
-		"INFO":  LevelInfo,
-		"WARN":  LevelWarning,
-		"ERROR": LevelError,
-		"FATAL": LevelFatal,
+func shouldLogLevel(level int32) bool {
+	return atomic.LoadInt32(&logger.level) <= level
+}
+
+func getLevelInt(level string) int32 {
+	switch level {
+	case "TRACE":
+		return LevelTrace
+	case "DEBUG":
+		return LevelDebug
+	case "INFO":
+		return LevelInfo
+	case "WARN":
+		return LevelWarning
+	case "ERROR":
+		return LevelError
+	case "FATAL":
+		return LevelFatal
+	case "AUDIT":
+		return LevelAudit
+	default:
+		return LevelInfo // Default to INFO if the level is unrecognized
 	}
-	return logger.level <= levelMap[level]
 }

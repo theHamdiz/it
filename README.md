@@ -89,7 +89,7 @@ func SomeNonCriticalFunction() (string, error) {
 
 ```go
 result := it.Must(SomeFunction())
-`
+```
 
 #### Should
 

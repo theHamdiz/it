@@ -1,4 +1,5 @@
-// Package it provides utility functions for error handling and logging,
+// Package it provides utility functions for error handling, logging, load balancing,
+// testing, timing & graceful actions.
 // simplifying common patterns while adhering to Go's best practices.
 //
 // This package includes functions that help manage errors by panicking on unrecoverable errors,
@@ -11,8 +12,8 @@
 //	func main() {
 //	    hardResult := it.Must(SomeFunction())
 //	    softResult := it.Should(SomeFunction())
-//	    fmt.Println(hardResult)
-//	    fmt.Println(softResult)
+//	    it.Info(hardResult)
+//	    it.Info(softResult)
 //	}
 package it
 
@@ -235,7 +236,7 @@ func (b *BufferedLogger) Flush() error {
 //	it.Trace("Entering function X")
 func Trace(message string) {
 	if logger.level <= LevelTrace {
-		_, err := magentaColor.Fprintf(output, "> Trace: %s\n", message)
+		_, err := magentaColor.Fprintf(output, "✅️ Trace: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -250,7 +251,7 @@ func Trace(message string) {
 //	it.Tracef("Processing item %d of %d", currentItem, totalItems)
 func Tracef(format string, args ...interface{}) {
 	if logger.level <= LevelTrace {
-		_, err := magentaColor.Fprintf(output, "> Trace: "+format+"\n", args...)
+		_, err := magentaColor.Fprintf(output, "✅️ Trace: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -265,7 +266,7 @@ func Tracef(format string, args ...interface{}) {
 //	it.Debug("Loaded configuration successfully")
 func Debug(message string) {
 	if logger.level <= LevelDebug {
-		_, err := blueColor.Fprintf(output, "> Debug: %s\n", message)
+		_, err := blueColor.Fprintf(output, "✅️ Debug: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -280,7 +281,7 @@ func Debug(message string) {
 //	it.Debugf("User %s has %d pending messages", username, messageCount)
 func Debugf(format string, args ...interface{}) {
 	if logger.level <= LevelDebug {
-		_, err := blueColor.Printf("> Debug: "+format+"\n", args...)
+		_, err := blueColor.Printf("✅️ Debug: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -322,7 +323,7 @@ func CheckError(err error) {
 //	it.Info("Starting the application")
 func Info(message string) {
 	if logger.level <= LevelInfo {
-		_, err := cyanColor.Fprintf(output, "> Info: %s\n", message)
+		_, err := cyanColor.Fprintf(output, "✅️ Info: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -337,11 +338,41 @@ func Info(message string) {
 //	it.Infof("Starting the application version %s", version)
 func Infof(format string, args ...interface{}) {
 	if logger.level <= LevelInfo {
-		_, err := cyanColor.Fprintf(output, "> Info: "+format+"\n", args...)
+		_, err := cyanColor.Fprintf(output, "✅️ Info: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
 
+	}
+}
+
+// Tip logs a tip message.
+// Use Tip to log general information about the program's execution.
+//
+// Example usage:
+//
+//	it.Tip("Use select {} to create an infinite blocking loop without consuming CPU, useful for keeping a program running or holding a goroutine until a signal")
+func Tip(message string) {
+	if logger.level <= LevelInfo {
+		_, err := cyanColor.Fprintf(output, "🌟 Tip: %s\n", message)
+		if err != nil {
+			return
+		}
+	}
+}
+
+// Tipf logs an informational message.
+// Use Tipf to log general information about the program's execution.
+//
+// Example usage:
+//
+//	it.Tipf("Use select {} to create an infinite blocking loop without consuming CPU, %s", "useful for keeping a program running or holding a goroutine until a signal")
+func Tipf(format string, args ...interface{}) {
+	if logger.level <= LevelInfo {
+		_, err := cyanColor.Fprintf(output, "🌟 Tip: "+format+"\n", args...)
+		if err != nil {
+			return
+		}
 	}
 }
 
@@ -353,7 +384,7 @@ func Infof(format string, args ...interface{}) {
 //	it.Warn("Configuration file not found, using defaults")
 func Warn(message string) {
 	if logger.level <= LevelWarning {
-		_, err := yellowColor.Fprintf(output, "> Warning: %s\n", message)
+		_, err := yellowColor.Fprintf(output, "🚧 Warning: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -368,7 +399,7 @@ func Warn(message string) {
 //	it.Warnf("Configuration file %s not found, using defaults", configFile)
 func Warnf(format string, args ...interface{}) {
 	if logger.level <= LevelWarning {
-		_, err := yellowColor.Fprintf(output, "> Warning: "+format+"\n", args...)
+		_, err := yellowColor.Fprintf(output, "🚧 Warning: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -383,7 +414,7 @@ func Warnf(format string, args ...interface{}) {
 //	it.Error("Failed to connect to the database")
 func Error(message string) {
 	if logger.level <= LevelError {
-		_, err := redColor.Fprintf(output, "> Error: %s\n", message)
+		_, err := redColor.Fprintf(output, "✅️ Error: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -398,7 +429,7 @@ func Error(message string) {
 //	it.Errorf("Failed to connect to the database: %v", err)
 func Errorf(format string, args ...interface{}) {
 	if logger.level <= LevelError {
-		_, err := redColor.Fprintf(output, "> Error: "+format+"\n", args...)
+		_, err := redColor.Fprintf(output, "✅️ Error: "+format+"\n", args...)
 		if err != nil {
 			return
 		}
@@ -534,7 +565,7 @@ func LogErrorWithStack(err error) {
 //	it.Audit("User login attempt recorded")
 func Audit(message string) {
 	if logger.level <= LevelAudit {
-		_, err := fmt.Fprintf(output, "> Audit: %s\n", message)
+		_, err := fmt.Fprintf(output, "✅️ Audit: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -646,13 +677,13 @@ func GracefulShutdown(ctx context.Context, server interface{ Shutdown(context.Co
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		Errorf("Error during shutdown: %v", err)
 	} else {
-		Info("Server shut down gracefully.")
+		Info("✅️ Server shut down gracefully.")
 	}
 
 	if action != nil {
 		action()
 	} else {
-		Warn("No post-shutdown action provided.")
+		Warn("🚧 No post-shutdown action provided.")
 	}
 
 	if done != nil {
@@ -687,7 +718,7 @@ func GracefulRestart(ctx context.Context, server interface{ Shutdown(context.Con
 
 	go func() {
 		<-restart
-		Info("Gracefully restarting...")
+		Warn("⚠️ Gracefully restarting...")
 
 		// Create a context with the specified timeout for graceful shutdown
 		shutdownCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -697,14 +728,14 @@ func GracefulRestart(ctx context.Context, server interface{ Shutdown(context.Con
 		if err := server.Shutdown(shutdownCtx); err != nil {
 			Errorf("Error during shutdown for restart: %v", err)
 		} else {
-			Info("Server shut down gracefully.")
+			Info("✅️ Server shut down gracefully.")
 		}
 
 		// Execute the optional action if provided
 		if action != nil {
 			action()
 		} else {
-			Warn("No post-shutdown action provided.")
+			Warn("🚧 No post-shutdown action provided.")
 		}
 
 		// Notify the done channel, if provided

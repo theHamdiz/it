@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main  # Change this if your default branch is named differently
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.x"
+
+      - name: Get the latest tag
+        id: get_latest_tag
+        run: |
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "latest_tag=${latest_tag}" >> $GITHUB_ENV
+
+      - name: Determine next version
+        id: determine_version
+        run: |
+          # Load the latest tag (assume v0.0.0 if no tag is found)
+          latest_version=${{ env.latest_tag:-v0.0.0 }}
+          echo "Current Version: $latest_version"
+
+          # Extract version numbers (X, Y, Z from vX.Y.Z)
+          version=$(echo "$latest_version" | sed 's/^v//')
+          major=$(echo "$version" | cut -d. -f1)
+          minor=$(echo "$version" | cut -d. -f2)
+          patch=$(echo "$version" | cut -d. -f3)
+
+          # Determine the next version based on the commit messages
+          if git log -1 --pretty=%B | grep -q 'BREAKING CHANGE'; then
+            major=$((major+1))
+            minor=0
+            patch=0
+          elif git log -1 --pretty=%B | grep -q '^feat'; then
+            minor=$((minor+1))
+            patch=0
+          else
+            patch=$((patch+1))
+          fi
+
+          # Set the new version
+          new_version="v${major}.${minor}.${patch}"
+          echo "new_version=${new_version}" >> $GITHUB_ENV
+          echo "Next Version: $new_version"
+
+      - name: Create tag for new version
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "<>"
+          git tag -a ${{ env.new_version }} -m "Release ${{ env.new_version }}"
+          git push origin ${{ env.new_version }}
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.new_version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

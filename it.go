@@ -19,6 +19,8 @@ package it
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -964,6 +966,23 @@ func SetLogOutput(newOutput *os.File) {
 //	it.SetLogLevel(it.LevelDebug)
 func SetLogLevel(level int) {
 	atomic.StoreInt32(&logger.level, int32(level))
+}
+
+// ===================================================
+// Utility Functions Area
+// ===================================================
+
+// GenerateSecret -> generates a random 32-bit secret key.
+//
+// Example usage:
+//
+//	key := it.GenerateSecret()
+func GenerateSecret() string {
+	bucket := make([]byte, 32)
+	if _, err := rand.Read(bucket); err != nil {
+		Errorf(err.Error())
+	}
+	return hex.EncodeToString(bucket)
 }
 
 // ===================================================

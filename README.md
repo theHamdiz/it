@@ -473,6 +473,11 @@ it.TimeFunction("compute", compute)
 defer it.TimeBlock("main")()
 ```  
 
+### Utility Functions
+> GenerateSecret: generates a random 32-bit secret key.
+```go
+key := it.GenerateSecret()
+```
 #### Configuration  
 
 #### Setting Log Output  

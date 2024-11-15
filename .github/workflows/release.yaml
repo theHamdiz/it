@@ -21,14 +21,14 @@ jobs:
       - name: Get the latest tag
         id: get_latest_tag
         run: |
-          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "")
           echo "latest_tag=${latest_tag}" >> $GITHUB_ENV
 
       - name: Determine next version
         id: determine_version
         run: |
-          # Load the latest tag (assume v0.0.0 if no tag is found)
-          latest_version=${{ env.latest_tag:-v0.0.0 }}
+          # Load the latest tag, or use "v0.0.0" if no tag is found
+          latest_version="${{ env.latest_tag || 'v0.0.0' }}"
           echo "Current Version: $latest_version"
 
           # Extract version numbers (X, Y, Z from vX.Y.Z)

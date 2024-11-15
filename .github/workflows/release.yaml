@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     branches:
-      - main
+      - main  # Change if your default branch is named differently
 
 jobs:
   release:
@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Check out the code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history to ensure all tags are available
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -54,7 +56,17 @@ jobs:
           echo "new_version=${new_version}" >> $GITHUB_ENV
           echo "Next Version: $new_version"
 
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "refs/tags/${{ env.new_version }}" >/dev/null 2>&1; then
+            echo "tag_exists=true" >> $GITHUB_ENV
+          else
+            echo "tag_exists=false" >> $GITHUB_ENV
+          fi
+
       - name: Create tag for new version
+        if: env.tag_exists == 'false'
         run: |
           git config user.name "GitHub Actions"
           git config user.email "<>"
@@ -62,6 +74,7 @@ jobs:
           git push origin ${{ env.new_version }}
 
       - name: Create GitHub release
+        if: env.tag_exists == 'false'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ env.new_version }}

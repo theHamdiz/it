@@ -215,7 +215,7 @@ func (b *BufferedLogger) Log(message string) {
 		fmt.Printf("Buffered log error: %v\n", err)
 		return
 	}
-	b.writer.Flush()
+	_ = b.writer.Flush()
 }
 
 // Flush forces any buffered data to be written out to the underlying writer.
@@ -384,7 +384,7 @@ func Tipf(format string, args ...interface{}) {
 //	it.Warn("Configuration file not found, using defaults")
 func Warn(message string) {
 	if logger.level <= LevelWarning {
-		_, err := yellowColor.Fprintf(output, "🚧 Warning: %s\n", message)
+		_, err := yellowColor.Fprintf(output, "🚧 Warn: %s\n", message)
 		if err != nil {
 			return
 		}
@@ -399,7 +399,7 @@ func Warn(message string) {
 //	it.Warnf("Configuration file %s not found, using defaults", configFile)
 func Warnf(format string, args ...interface{}) {
 	if logger.level <= LevelWarning {
-		_, err := yellowColor.Fprintf(output, "🚧 Warning: "+format+"\n", args...)
+		_, err := yellowColor.Fprintf(output, "🚧 Warn: "+format+"\n", args...)
 		if err != nil {
 			return
 		}

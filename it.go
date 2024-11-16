@@ -346,6 +346,51 @@ func Infof(format string, args ...interface{}) {
 	}
 }
 
+// Created logs a file creation action.
+// Use Created to log formatted information about the new file creation.
+//
+// Example usage:
+//
+//	it.Created("internal/app/app.go")
+func Created(file string) {
+	if logger.level <= LevelInfo {
+		_, err := cyanColor.Fprintf(output, "✅️ Created => %s\n", file)
+		if err != nil {
+			return
+		}
+	}
+}
+
+// Removed logs a file deletion action.
+// Use Removed to log formatted information about file deletions.
+//
+// Example usage:
+//
+//	it.Removed("internal/app/app.go")
+func Removed(file string) {
+	if logger.level <= LevelError {
+		_, err := redColor.Fprintf(output, "❌ Removed => %s\n", file)
+		if err != nil {
+			return
+		}
+	}
+}
+
+// Rollback logs a formatted rollback message.
+// Use Rollback to log formatted information about rollback execution.
+//
+// Example usage:
+//
+//	it.Rollback("Rollback successful")
+func Rollback(format string, args ...interface{}) {
+	if logger.level <= LevelWarning {
+		_, err := yellowColor.Fprintf(output, "🚧 rollback => "+format+"\n", args...)
+		if err != nil {
+			return
+		}
+	}
+}
+
 // Tip logs a tip message.
 // Use Tip to log general information about the program's execution.
 //

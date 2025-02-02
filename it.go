@@ -41,6 +41,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -107,6 +108,30 @@ func Should[T any](operation func() (T, error)) T {
 		return lastResult
 	}
 	return result
+}
+
+// Could is for when you're not sure if you want to deal with this right now
+func Could[T any](operation func() (T, error)) func() T {
+	var (
+		result T
+		err    error
+		done   bool
+		mu     sync.Mutex
+	)
+
+	return func() T {
+		mu.Lock()
+		defer mu.Unlock()
+
+		if !done {
+			result, err = operation()
+			if err != nil {
+				logger.DefaultLogger().Warnf("well, we tried %s", err)
+			}
+			done = true
+		}
+		return result
+	}
 }
 
 // WrapError wraps an error with a custom message and additional metadata.

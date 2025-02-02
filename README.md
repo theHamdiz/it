@@ -25,6 +25,15 @@ config := it.Must(LoadConfig())
 // The "let's log and pray" method
 user := it.Should(GetUser())
 
+// Maybe we'll connect to the database... eventually
+maybeConnect := it.Could(func() (*sql.DB, error) {
+    return sql.Open("postgres", "postgres://procrastinator:later@localhost")
+})
+
+// Sometime later, when we feel ready...
+db := maybeConnect() // First call actually does the work
+alsoDb := maybeConnect() // Returns same result, wasn't worth trying again anyway
+
 // The "cover your tracks" strategy
 err := it.WrapError(dbErr, "database had an existential crisis",
     map[string]any{"attempt": 42, "mood": "gothic"})

@@ -77,6 +77,49 @@ func TestShould(t *testing.T) {
 	}
 }
 
+// TestCould tests the Could function, I mean right?
+func TestCould(t *testing.T) {
+	// For the indecisive
+	count := 0
+	maybeDoWork := it.Could(func() (string, error) {
+		count++
+		return "meh", nil
+	})
+
+	// Call it whenever you feel like it
+	result1 := maybeDoWork()
+	result2 := maybeDoWork()
+	result3 := maybeDoWork()
+
+	// Make sure we were lazy enough
+	if count != 1 {
+		t.Errorf("did work %d times, expected once", count)
+	}
+
+	// Check if all results are consistently mediocre
+	if result1 != result2 || result2 != result3 {
+		t.Error("got different results somehow")
+	}
+
+	// Test with errors because life is pain
+	failures := 0
+	maybeFail := it.Could(func() (int, error) {
+		failures++
+		return 42, errors.New("nope")
+	})
+
+	// Even failures should be consistent
+	r1 := maybeFail()
+	r2 := maybeFail()
+
+	if failures != 1 {
+		t.Error("failed more than necessary")
+	}
+	if r1 != r2 {
+		t.Error("failed differently somehow")
+	}
+}
+
 // TestSafeGo tests goroutine safety
 func TestSafeGo(t *testing.T) {
 	wg := sync.WaitGroup{}

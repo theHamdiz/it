@@ -109,6 +109,21 @@ func Should[T any](operation func() (T, error)) T {
 	return result
 }
 
+// WrapError wraps an error with a custom message and additional metadata.
+// If the original error is nil, it simply returns nil.
+func WrapError(err error, message string, metadata map[string]any) error {
+	if err == nil {
+		return nil
+	}
+
+	wrappedMessage := fmt.Sprintf("%s: %v", message, err)
+	if metadata != nil && len(metadata) > 0 {
+		wrappedMessage += fmt.Sprintf(" | Metadata: %+v", metadata)
+	}
+
+	return errors.New(wrappedMessage)
+}
+
 // ===================================================
 // Goroutine Management - Threading The Needle
 // ===================================================

@@ -57,7 +57,7 @@ it.StructuredInfo("API Call", map[string]any{
 })
 ```
 
-## Sub-packages (For the Control Freaks)
+## Sub-Packages (For the Control Freaks)
 
 ### Pool - Object Recycling Center
 
@@ -269,12 +269,13 @@ fib := math.Fibonacci(42)
 ## Configuration 🔧
 
 ```go
+import "github.com/theHamdiz/it/logger"
 // Redirect logs to your favorite black hole
 file, _ := os.OpenFile("void.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 it.SetLogOutput(file)
 
 // Set log level from "meh" to "everything's on fire"
-it.SetLogLevel(it.LevelDebug)
+it.SetLogLevel(logger.LevelDebug)
 
 // Let environment variables do the heavy lifting
 // Optimist mode

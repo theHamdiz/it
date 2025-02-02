@@ -53,7 +53,7 @@ it.StructuredInfo("API Call", map[string]any{
 ### Pool - Object Recycling Center
 
 ```go
-pool_ := pool_.NewPool(func() *ExpensiveObject {
+pool_ := pool.NewPool(func() *ExpensiveObject {
     // Save the environment, reuse your objects
     return &ExpensiveObject{}
 })
@@ -83,10 +83,129 @@ err := lb_.Execute(ctx, func() error {
 })
 ```
 
-### Result - Because null Checks Are So 1970s
+### Benchmarker - The Performance Theater
+
+Because measuring performance makes you feel better about your terrible code.
 
 ```go
-res := result_.Ok("success")
+// Run your function until the numbers look good
+result := bm.Benchmark("definitely-fast", 1000, func() {
+    SuperOptimizedCode() // yeah right
+})
+
+// Or collect your own timings when you don't trust us
+timings := []time.Duration{...}
+result := bm.AnalyzeBenchmark("probably-fast", timings)
+
+// Slack-friendly output for bragging rights
+fmt.Println(result) // Screenshots or it didn't happen
+```
+
+Gives you min, max, average, median, and that standard deviation thing nobody really understands. Perfect for making your code look faster than it is in production.
+
+JSON support included because apparently everything needs to be in a dashboard these days.
+
+Now go forth and benchmark the hell out of that O(n2) algorithm you're trying to justify.
+
+### Exponential Backoff - Professional Failure Management
+
+Because at some point, everything fails. Might as well be ready for it.
+
+```go
+// For when you're feeling optimistic
+cfg := retry.DefaultRetryConfig()
+
+// For when you know it's going to be rough
+cfg := retry.Config{
+    Attempts:     5,
+    InitialDelay: time.Second,
+    MaxDelay:     30 * time.Second,
+    Multiplier:   2.0,
+    RandomFactor: 0.1,
+}
+
+// Actually doing the thing
+result, err := retry.WithBackoff(ctx, cfg, func(ctx context.Context) (string, error) {
+    return CallThatFlakyService()
+})
+```
+
+Implements exponential backoff with jitter because hammering a failing service is both rude and stupid. Comes with sane defaults for when you're too lazy to think.
+
+Default config gives you 3 attempts with increasing delays, starting at 100ms and capping at 10s. Add some randomness to avoid the thundering herd, because your systems have enough problems already.
+
+Now go forth and embrace failure like a professional.
+
+### Shutdown Manager - Graceful Program Retirement
+
+Because even software needs a dignified exit strategy.
+
+```go
+// Set up the end times
+sm := sm.NewShutdownManager()
+
+// Add some last wishes
+sm.AddAction(
+    "save-data",
+    func(ctx context.Context) error {
+        return db.Close()
+    },
+    5 * time.Second,
+    true, // This one matters
+)
+
+// Start watching for the end
+sm.Start()
+
+// Wait for the inevitable
+if err := sm.Wait(); err != nil {
+    log.Fatal("Failed to die gracefully:", err)
+}
+```
+
+Handles shutdown signals (SIGINT, SIGTERM by default), manages cleanup tasks with timeouts, and ensures your program dies with dignity instead of just crashing.
+
+Critical actions fail the whole shutdown if they fail, non-critical ones just log and continue, because some things aren't worth dying twice over.
+
+Perfect for when you need your program to clean up after itself instead of leaving a mess for the OS to deal with.
+
+### Time Keeper - Time Tracking for the Obsessed
+
+Because if you're not measuring it, you're just guessing.
+
+```go
+// Basic timing
+tk := tk.NewTimeKeeper("database-query").Start()
+defer tk.Stop()
+
+// With a callback for the micromanagers
+tk := tk.NewTimeKeeper("expensive-operation",
+    tk.WithCallback(func(d time.Duration) {
+        metrics.Record("too-slow", d)
+    }),
+).Start()
+
+// Quick one-liner for the lazy
+result := tk.TimeFn("important-stuff", func() string {
+    return DoTheWork()
+})
+
+// Async timing for the parallel obsessed
+atk := tk.NewAsyncTimeKeeper("batch-process")
+for task := range tasks {
+    atk.Track(func() { process(task) })
+}
+durations := atk.Wait()
+```
+
+Times your operations, logs the results, and lets you obsess over performance with minimal effort. Supports both synchronous and async operations, because sometimes you need to time multiple failures simultaneously.
+
+Perfect for when you need to prove that it's not your code that's slow, it's everyone else's.
+
+### Result - Because nil Checks Are So 1970s
+
+```go
+res := result.Ok("success")
 if res.IsOk() {
     value := res.UnwrapOr("plan B")
 }
@@ -155,6 +274,32 @@ os.Setenv("LOG_LEVEL", "PANIC")
 os.Setenv("LOG_FILE", "/dev/null")
 it.InitFromEnv()
 ```
+
+### Version - Software Identity Management
+
+Because every program needs to know who it is and who to blame.
+
+```go
+// Get all the details
+info := version.Get()
+fmt.Println(info)
+// Output: v1.2.3 built at 2023-12-25T12:00:00Z from main@abc1234 (go1.21) running on linux/amd64 in production
+
+// For your JSON APIs
+jsonData, _ := json.Marshal(info.ToMap())
+
+// Build with:
+go build -ldflags="
+    -X 'package/version.version=1.2.3'
+    -X 'package/version.buildTime=$(date -u +"%Y-%m-%dT%H:%M:%SZ")'
+    -X 'package/version.gitCommit=$(git rev-parse HEAD)'
+    -X 'package/version.gitBranch=$(git rev-parse --abbrev-ref HEAD)'
+    -X 'package/version.environment=production'"
+```
+
+Tracks version, build time, git info, and runtime details. Perfect for logging, debugging, and finding out which commit broke production.
+
+Values are injected at build time via ldflags, because hardcoding versions is for amateurs.
 
 ## Performance Notes
 

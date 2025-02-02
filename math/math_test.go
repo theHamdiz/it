@@ -123,6 +123,25 @@ func TestSumRangeCorrectness(t *testing.T) {
 		{start: -10, end: -5, want: -45},
 		{start: 5, end: 10, want: 45},
 		{start: -3, end: 2, want: -3},
+
+		{
+			// int32 overflow check
+			start: 65535,
+			end:   65536,
+			want:  131071,
+		},
+		{
+			// int32 similar case with negative numbers
+			start: -65536,
+			end:   -65535,
+			want:  -131071,
+		},
+		{
+			// Large range where intermediate would overflow on int32
+			start: 46340,
+			end:   46341,
+			want:  92681,
+		},
 	}
 
 	for _, c := range cases {

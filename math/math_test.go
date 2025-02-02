@@ -62,32 +62,76 @@ func TestCorrectness(t *testing.T) {
 // TestSumRangeCorrectness checks that SumRange and SumRangeSlow produce
 // the same results, even for negative values.
 func TestSumRangeCorrectness(t *testing.T) {
+	// Thanks to to u/Skeeve-on-git for highlighting negative sum bug.
 	type testCase struct {
 		start int64
 		end   int64
-		want  int64 // optional: if you already know the correct result
+		want  int64
 	}
+
 	cases := []testCase{
+		// Zero cases
 		{start: 0, end: 0, want: 0},
+		{start: -0, end: 0, want: 0},
+		{start: 0, end: -0, want: 0},
+
+		// Single number cases
 		{start: 1, end: 1, want: 1},
-		{start: 1, end: 10, want: 55}, // 1+2+3+...+10
-		{start: -5, end: 5, want: 0},  // -5..5 sums to 0
-		{start: 999, end: 1000, want: 999 + 1000},
-		{start: 100, end: 50},          // reversed, tests the swap logic
-		{start: -3, end: -1, want: -6}, // -3 + -2 + -1
+		{start: -1, end: -1, want: -1},
+		{start: 42, end: 42, want: 42},
+
+		// Small positive ranges
+		{start: 1, end: 5, want: 15},
+		{start: 3, end: 7, want: 25},
+		{start: 1, end: 10, want: 55},
+
+		// Small negative ranges
+		{start: -5, end: -1, want: -15},
+		{start: -7, end: -3, want: -25},
+		{start: -10, end: -1, want: -55},
+
+		// Mixed ranges crossing zero
+		{start: -5, end: 5, want: 0},
+		{start: -3, end: 3, want: 0},
+		{start: -2, end: 2, want: 0},
+		{start: -10, end: 10, want: 0},
+
+		// Asymmetric mixed ranges
+		{start: -3, end: 5, want: 9},
+		{start: -7, end: 4, want: -18},
+		{start: -2, end: 8, want: 33},
+
+		// Reversed ranges (testing swap logic)
+		{start: 5, end: 1, want: 15},
+		{start: -1, end: -5, want: -15},
+		{start: 5, end: -5, want: 0},
+		{start: 10, end: -10, want: 0},
+
+		// Larger ranges
+		{start: 1, end: 100, want: 5050},
+		{start: -100, end: -1, want: -5050},
+		{start: -50, end: 50, want: 0},
+		{start: 999, end: 1000, want: 1999},
+
+		// Adjacent numbers
+		{start: -2, end: -1, want: -3},
+		{start: -1, end: 0, want: -1},
+		{start: 0, end: 1, want: 1},
+		{start: 1, end: 2, want: 3},
+
+		// Gaps
+		{start: -10, end: -5, want: -45},
+		{start: 5, end: 10, want: 45},
+		{start: -3, end: 2, want: -3},
 	}
 
 	for _, c := range cases {
 		gotSlow := sumRangeSlow(c.start, c.end)
 		gotFast := math2.SumRange[int64](c.start, c.end)
 
-		// If "want" is 0, we either didn't provide it or we think it might not matter.
-		// We'll just compare slow vs fast. Otherwise, we check the known value.
-		if c.want != 0 {
-			if gotSlow != c.want {
-				t.Errorf("sumRangeSlow(%d, %d) = %d; want %d",
-					c.start, c.end, gotSlow, c.want)
-			}
+		if gotSlow != c.want {
+			t.Errorf("sumRangeSlow(%d, %d) = %d; want %d",
+				c.start, c.end, gotSlow, c.want)
 		}
 		if gotSlow != gotFast {
 			t.Errorf("SumRange mismatch for start=%d end=%d: slow=%d fast=%d",

@@ -7,10 +7,16 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-// Sum calculates the sum of numbers from 1 to n in O(1) time
+// Sum calculates the sum of numbers from 1 to n (or n to 1 if n is negative) in O(1) time
 // because who needs loops when you have math from 300 BC?
 // Gauss would be proud, or maybe just mildly amused.
 func Sum[T constraints.Integer](n T) T {
+	// For n = 0, because sometimes nothing plus nothing is... nothing
+	// Thanks to to u/Skeeve-on-git for highlighting negative sum bug.
+	if n == 0 {
+		return 0
+	}
+
 	// If you're wondering why this works:
 	// 1. Gauss figured this out when he was 8
 	// 2. You're probably older than 8
@@ -23,8 +29,20 @@ func Sum[T constraints.Integer](n T) T {
 // obviously this should not be used, it's just here for the memes.
 func SumSlow[T constraints.Integer](n T) T {
 	var total T
-	for i := T(1); i <= n; i++ {
-		total += i
+	// Explicitly cast 1 to type T
+	one := T(1)
+	// Thanks to to u/Skeeve-on-git for highlighting this.
+	// Compute -1 as type T
+	negOne := -one
+
+	if n > 0 {
+		for i := one; i <= n; i++ {
+			total += i
+		}
+	} else {
+		for i := n; i <= negOne; i++ {
+			total += i
+		}
 	}
 	return total
 }
@@ -38,6 +56,7 @@ func SumRange[T constraints.Integer](start, end T) T {
 		start, end = end, start
 	}
 
+	// One formula to rule them all
 	// The formula is: (end * (end + 1) / 2) - (start * (start - 1) / 2)
 	// Don't worry if you don't understand it, neither do most people
 	return Sum(end) - Sum(start-1)

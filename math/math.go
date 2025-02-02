@@ -17,10 +17,15 @@ func Sum[T constraints.Integer](n T) T {
 		return 0
 	}
 
+	if n < 0 {
+		return -((n * (n - 1)) / 2)
+	}
+
 	// If you're wondering why this works:
 	// 1. Gauss figured this out when he was 8
 	// 2. You're probably older than 8
 	// 3. Don't feel bad, he was Gauss
+	// return (n * (n + 1)) / 2
 	return (n * (n + 1)) / 2
 }
 
@@ -56,10 +61,24 @@ func SumRange[T constraints.Integer](start, end T) T {
 		start, end = end, start
 	}
 
-	if start >= 1 {
-		return Sum(end) - Sum(start-1)
+	if start == end {
+		return start
 	}
 
+	if start == 0 {
+		return Sum(end)
+	}
+
+	if end < 0 {
+		return -(Sum(-start) - Sum(-end-1))
+	}
+
+	// If start is negative and end is positive, sum both parts separately
+	if start < 0 {
+		return -(Sum(-start)) + Sum(end)
+	}
+
+	// For positive ranges, use normal sum formula
 	return Sum(end) - Sum(start-1)
 }
 
@@ -73,9 +92,15 @@ func SumRangeSlow[T constraints.Integer](start, end T) T {
 		start, end = end, start
 	}
 
-	// The formula is: (end * (end + 1) / 2) - (start * (start - 1) / 2)
-	// Don't worry if you don't understand it, neither do most people
-	return SumSlow(end) - SumSlow(start-1)
+	if start == end {
+		return start
+	}
+
+	var total T
+	for i := start; i <= end; i++ {
+		total += i
+	}
+	return total
 }
 
 // SumWithOverflowCheck does the same as Sum but checks for overflow

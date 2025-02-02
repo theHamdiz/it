@@ -145,11 +145,11 @@ func TestSumRangeCorrectness(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		gotSlow := sumRangeSlow(c.start, c.end)
+		gotSlow := math2.SumRangeSlow(c.start, c.end)
 		gotFast := math2.SumRange[int64](c.start, c.end)
 
 		if gotSlow != c.want {
-			t.Errorf("sumRangeSlow(%d, %d) = %d; want %d",
+			t.Errorf("SumRangeSlow(%d, %d) = %d; want %d",
 				c.start, c.end, gotSlow, c.want)
 		}
 		if gotSlow != gotFast {
@@ -159,17 +159,86 @@ func TestSumRangeCorrectness(t *testing.T) {
 	}
 }
 
-// sumRangeSlow is a corrected slow version that literally loops from start to end
-// (including negatives) so it matches the actual sum of all integers in [start, end].
-func sumRangeSlow(start, end int64) int64 {
-	if start > end {
-		start, end = end, start
+func TestSum(t *testing.T) {
+	tests := []struct {
+		name string
+		n    int
+		want int
+	}{
+		// Basic cases for the "I'm just getting started" crowd
+		{"zero", 0, 0},
+		{"one", 1, 1},
+		{"two", 2, 3},   // 1 + 2
+		{"three", 3, 6}, // 1 + 2 + 3
+
+		// Negative numbers, because life isn't always positive
+		{"minus one", -1, -1},   // Just -1
+		{"minus two", -2, -3},   // -2 + -1
+		{"minus three", -3, -6}, // -3 + -2 + -1
+
+		// Larger numbers for the ambitious
+		{"ten", 10, 55},         // 1 + 2 + ... + 10
+		{"minus ten", -10, -55}, // -10 + -9 + ... + -1
+
+		// Edge cases, because we love to live dangerously
+		{
+			"large positive",
+			100,
+			5050,
+		},
+		{
+			"large negative",
+			-100,
+			-5050,
+		},
 	}
-	var total int64
-	for i := start; i <= end; i++ {
-		total += i
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			got := math2.Sum(tt.n)
+			slowGot := math2.SumSlow(tt.n)
+
+			if got != tt.want {
+				t.Errorf("Sum(%d) = %d, want %d", tt.n, got, tt.want)
+			}
+
+			// Double-check against our slow implementation
+			if got != slowGot {
+				t.Errorf("Fast Sum(%d) = %d, but slow Sum(%d) = %d. "+
+					"Someone's lying, and it's probably us.",
+					tt.n, got, tt.n, slowGot)
+			}
+		})
 	}
-	return total
+}
+
+// TestSumTypes verifies that our function works with different integer types
+// because type systems are fun
+func TestSumTypes(t *testing.T) {
+	// Test with different integer types
+	tests := []struct {
+		name string
+		test func() bool
+	}{
+		{"int8", func() bool { return math2.Sum(int8(5)) == 15 }},
+		{"int16", func() bool { return math2.Sum(int16(-5)) == -15 }},
+		{"int32", func() bool { return math2.Sum(int32(10)) == 55 }},
+		{"int64", func() bool { return math2.Sum(int64(-10)) == -55 }},
+		{"uint", func() bool { return math2.Sum(uint(5)) == 15 }},
+		{"uint8", func() bool { return math2.Sum(uint8(5)) == 15 }},
+		{"uint16", func() bool { return math2.Sum(uint16(10)) == 55 }},
+		{"uint32", func() bool { return math2.Sum(uint32(15)) == 120 }},
+		{"uint64", func() bool { return math2.Sum(uint64(20)) == 210 }},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if !tt.test() {
+				t.Errorf("%s failed", tt.name)
+			}
+		})
+	}
 }
 
 // TestArithmeticSeriesCorrectness checks that the arithmetic series formula

@@ -56,9 +56,10 @@ func SumRange[T constraints.Integer](start, end T) T {
 		start, end = end, start
 	}
 
-	// One formula to rule them all
-	// The formula is: (end * (end + 1) / 2) - (start * (start - 1) / 2)
-	// Don't worry if you don't understand it, neither do most people
+	if start >= 1 {
+		return Sum(end) - Sum(start-1)
+	}
+
 	return Sum(end) - Sum(start-1)
 }
 

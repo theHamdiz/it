@@ -4,7 +4,7 @@ Because we kinda need this shit daily and we know it!
 
 [![GoDoc](https://godoc.org/github.com/theHamdiz/it?status.svg)](https://pkg.go.dev/github.com/theHamdiz/it)
 [![Go Report Card](https://goreportcard.com/badge/github.com/theHamdiz/it)](https://goreportcard.com/report/github.com/theHamdiz/it)
-[![License: The Whatever, Just Take It License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: The Whatever, Just Take It License](https://img.shields.io/badge/License-MIT-yellow.svg)](TRUELICENSE)
 ![Tests](https://img.shields.io/badge/tests-mostly%20passing-green)
 ![Panic Rate](https://img.shields.io/badge/panic%20rate-just%20right-blue)
 
@@ -426,7 +426,9 @@ A: Faster than your last deployment rollback
 
 ## License
 
-[The Whatever, Just Take It License](LICENSE) - Because even chaos needs a license.
+[The Whatever, Just Take It License](TRUELICENSE) - Because even chaos needs a license.
+
+> P.S. Don't believe the `MIT LICENSE` File, it's just here for `go.dev`
 
 ---
 

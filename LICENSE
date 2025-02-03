@@ -1,26 +1,21 @@
-The "Whatever, Just Take It" License
+MIT License
 
-Copyright (c) 2025 Ahmad Hamdi (yes, that's actually my name)
+Copyright (c) [2025] [Ahmad Hamdi]
 
-Look, I'm feeling generous today, so here's the deal: you can have this software
-for exactly zero dollars (what a bargain, right?). You can pretty much do
-whatever you want with it - use it, modify it, sell it (good luck with that),
-or print it out and use it as wallpaper. I really couldn't care less.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-Just do this ONE thing (is that too much to ask?):
-Keep this ridiculously permissive license text somewhere in your copy.
-That's it. That's literally all you have to do. If you can't manage that,
-I don't even know what to tell you.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-Oh, and here's the fun part (lawyers made me add this):
-THIS SOFTWARE COMES WITH ABSOLUTELY NO WARRANTY. LIKE, ZERO. NADA.
-IF IT BREAKS YOUR STUFF, DELETES YOUR FILES, SETS YOUR COMPUTER ON FIRE,
-STARTS A ZOMBIE APOCALYPSE, OR CAUSES THE END OF CIVILIZATION AS WE KNOW IT,
-THAT'S ENTIRELY YOUR PROBLEM. I'M NOT LIABLE FOR ANYTHING, AND I MEAN ANYTHING.
-DON'T EVEN THINK ABOUT SUING ME - I SPENT ALL MY MONEY ON COFFEE WHILE
-WRITING THIS CODE ANYWAY.
-
-Good luck! You're gonna need it.
-
-P.S. If this actually makes you money, I accept tips in the form of pizza
-and energy drinks. Just saying.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

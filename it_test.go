@@ -357,14 +357,21 @@ func TestWaitFor(t *testing.T) {
 
 // TestGenerateSecret tests secret generation
 func TestGenerateSecret(t *testing.T) {
-	secret1 := it.GenerateSecret()
-	secret2 := it.GenerateSecret()
-
-	if secret1 == "" {
-		t.Error("GenerateSecret returned empty string")
-	}
-	if secret1 == secret2 {
-		t.Error("Generated secrets should be different")
+	for secretLength := 4; secretLength <= 16; secretLength++ {
+		seenSecrets := make(map[string]struct{})
+		// Technically, duplicate secrets could be produced even 
+		// if working properly, but it's relatively unlikely.
+		for i := 0; i < 10; i++ {
+			secret := it.GenerateSecret(secretLength)
+			expectedLength := secretLength * 2
+			if len(secret) != expectedLength {
+				t.Errorf("Secret length mismatch. Should be %d, got %d", expectedLength, len(secret))
+			}
+			if _, ok := seenSecrets[secret]; ok {
+				t.Errorf("Duplicate secret generated: %s", secret)
+			}
+			seenSecrets[secret] = struct{}{}
+		}
 	}
 }
 

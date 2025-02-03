@@ -31,11 +31,11 @@ package it
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"reflect"
 	"runtime"
@@ -629,15 +629,20 @@ func TimeParallel(name string, fns ...func()) []time.Duration {
 // Utility Functions - The Kitchen Sink
 // ===================================================
 
-// GenerateSecret generates a random 32-bit secret key
-func GenerateSecret() string {
-	// Create a 32-bit (4-byte) buffer
-	bytes := make([]byte, 4)
+// GenerateSecret generates a random secret of the given byte length.
+func GenerateSecret(numBytes int) string {
+	bytes := make([]byte, numBytes)
 
-	// Read random bytes
 	if _, err := rand.Read(bytes); err != nil {
-		// If random generation fails, return a timestamp-based key
-		return hex.EncodeToString([]byte(time.Now().String()))
+		// When random generation fails, fallback to time-based generation.
+		// The below approach has very low entropy and is completely insecure.
+		// However, crypto/rand fails very rarely, so who cares.
+		bytesWritten := 0
+		for bytesWritten < numBytes {
+			byteFromCurrentTime := byte(time.Now().UnixNano() & 0xFF)
+			bytes[bytesWritten] = byteFromCurrentTime
+			bytesWritten++
+		}
 	}
 
 	// Convert to hex string
@@ -714,8 +719,4 @@ func init() {
 	currentConfig = cfg.Configure()
 	// Because someone has to set sensible defaults
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	// Seed the random number generator because randomness
-	// should at least pretend to be random
-	rand.New(rand.NewSource(time.Now().UnixNano()))
 }

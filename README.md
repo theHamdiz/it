@@ -4,7 +4,7 @@ Because we kinda need this shit daily and we know it!
 
 [![GoDoc](https://godoc.org/github.com/theHamdiz/it?status.svg)](https://pkg.go.dev/github.com/theHamdiz/it)
 [![Go Report Card](https://goreportcard.com/badge/github.com/theHamdiz/it)](https://goreportcard.com/report/github.com/theHamdiz/it)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: The Whatever, Just Take It License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Tests](https://img.shields.io/badge/tests-mostly%20passing-green)
 ![Panic Rate](https://img.shields.io/badge/panic%20rate-just%20right-blue)
 

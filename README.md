@@ -19,6 +19,8 @@ go get github.com/theHamdiz/it
 ### Error Handling (Because panic() is a lifestyle)
 
 ```go
+import "github.com/theHamdiz/it"
+
 // The "I believe in miracles" approach
 config := it.Must(LoadConfig())
 
@@ -42,6 +44,8 @@ err := it.WrapError(dbErr, "database had an existential crisis",
 ### Logging (Now with proper prefixes)
 
 ```go
+import "github.com/theHamdiz/it"
+
 it.Trace("Like println() but fancier")
 it.Debug("For when you're feeling verbose")
 it.Info("FYI: Something happened")
@@ -62,6 +66,8 @@ it.StructuredInfo("API Call", map[string]any{
 ### Pool - Object Recycling Center
 
 ```go
+import "github.com/theHamdiz/it/pool"
+
 pool_ := pool.NewPool(func() *ExpensiveObject {
     // Save the environment, reuse your objects
     return &ExpensiveObject{}
@@ -74,6 +80,8 @@ defer pool_.Put(obj)
 ### Debouncer - Function Anger Management
 
 ```go
+import "github.com/theHamdiz/it/debouncer"
+
 calm := debouncer.NewDebouncer(100 * time.Millisecond)
 relaxedFunc := calm.Debounce(func() {
     // Now with less spam
@@ -84,6 +92,8 @@ relaxedFunc := calm.Debounce(func() {
 ### Load Balancer - Work Distribution Committee
 
 ```go
+import "github.com/theHamdiz/it/lb"
+
 // Democratic work distribution
 lb_ := lb.NewLoadBalancer(10)
 err := lb_.Execute(ctx, func() error {
@@ -97,6 +107,8 @@ err := lb_.Execute(ctx, func() error {
 Because measuring performance makes you feel better about your terrible code.
 
 ```go
+import "github.com/theHamdiz/it/bm"
+
 // Run your function until the numbers look good
 result := bm.Benchmark("definitely-fast", 1000, func() {
     SuperOptimizedCode() // yeah right
@@ -121,6 +133,8 @@ Now go forth and benchmark the hell out of that O(n2) algorithm you're trying to
 Because at some point, everything fails. Might as well be ready for it.
 
 ```go
+import "github.com/theHamdiz/it/retry"
+
 // For when you're feeling optimistic
 cfg := retry.DefaultRetryConfig()
 
@@ -150,6 +164,8 @@ Now go forth and embrace failure like a professional.
 Because even software needs a dignified exit strategy.
 
 ```go
+import "github.com/theHamdiz/it/sm"
+
 // Set up the end times
 sm := sm.NewShutdownManager()
 
@@ -183,6 +199,8 @@ Perfect for when you need your program to clean up after itself instead of leavi
 Because if you're not measuring it, you're just guessing.
 
 ```go
+import "github.com/theHamdiz/it/tk"
+
 // Basic timing
 tk := tk.NewTimeKeeper("database-query").Start()
 defer tk.Stop()
@@ -211,9 +229,37 @@ Times your operations, logs the results, and lets you obsess over performance wi
 
 Perfect for when you need to prove that it's not your code that's slow, it's everyone else's.
 
+### Circuit Breaker - Your Code's Emotional Support System
+
+Because sometimes your dependencies need a time-out, just like your ex.
+
+```go
+import "github.com/theHamdiz/it/cb"
+
+// Create a breaker that gives up after 3 failures
+// and needs 30 seconds of alone time
+breaker := cb.NewCircuitBreaker(3, 30*time.Second)
+
+// Wrap your flaky calls with trust issues
+err := breaker.Execute(func() error {
+    return ThatThingThatAlwaysBreaks()
+})
+
+// Check if we're still in therapy
+if breaker.IsOpen() {
+    // Time to implement plan B
+}
+```
+
+Includes state tracking, configurable thresholds, and automatic recovery. Perfect for when your microservices are having a midlife crisis.
+
+Now go forth and fail gracefully, because that's what mature code does.
+
 ### Result - Because nil Checks Are So 1970s
 
 ```go
+import "github.com/theHamdiz/it/result"
+
 res := result.Ok("success")
 if res.IsOk() {
     value := res.UnwrapOr("plan B")
@@ -223,6 +269,8 @@ if res.IsOk() {
 ### Math - For The Algorithmically Gifted
 
 ```go
+import "github.com/theHamdiz/it/math"
+
 // O(1) summation that would make Gauss proud
 sum := math.Sum(1000000)
 
@@ -266,10 +314,17 @@ choose, err := math.Binomial(20, 10)
 fib := math.Fibonacci(42)
 ```
 
-## Configuration 🔧
+### Config - Because Hardcoding is a Crime
+
+For when you need to make your application configurable, but still predictably unreliable.
 
 ```go
-import "github.com/theHamdiz/it/logger"
+import (
+	"github.com/theHamdiz/it/logger"
+	"github.com/theHamdiz/it/cfg"
+)
+
+// You could use global shortcuts
 // Redirect logs to your favorite black hole
 file, _ := os.OpenFile("void.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 it.SetLogOutput(file)
@@ -283,7 +338,26 @@ os.Setenv("LOG_LEVEL", "PANIC")
 // The ultimate backup strategy
 os.Setenv("LOG_FILE", "/dev/null")
 it.InitFromEnv()
+
+// Or you could create a config with sensible* defaults
+// *sensible is a relative term
+cfg_ := cfg.Configure(
+    cfg.WithLogLevel(logger.LevelDebug),    // Maximum verbosity
+    cfg.WithLogFile("regrets.log"),         // For posterity
+    cfg.WithShutdownTimeout(5*time.Second), // Ain't nobody got time for that
+    cfg.WithColors(true),                   // Pretty errors are still errors
+)
+
+// Check what you did to yourself
+if cfg_.ColorsEnabled() {
+    // Congratulations, your logs are now fabulous
+}
 ```
+
+Includes functional options, reasonable defaults, and just enough flexibility to be dangerous. Perfect for when you need to explain why production is different from your laptop.
+
+Now go forth and configure responsibly, or don't. We're not your parents.
+
 
 ### Version - Software Identity Management
 

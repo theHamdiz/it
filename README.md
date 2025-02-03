@@ -167,10 +167,10 @@ Because even software needs a dignified exit strategy.
 import "github.com/theHamdiz/it/sm"
 
 // Set up the end times
-sm := sm.NewShutdownManager()
+sm_ := sm.NewShutdownManager()
 
 // Add some last wishes
-sm.AddAction(
+sm_.AddAction(
     "save-data",
     func(ctx context.Context) error {
         return db.Close()
@@ -180,10 +180,10 @@ sm.AddAction(
 )
 
 // Start watching for the end
-sm.Start()
+sm_.Start()
 
 // Wait for the inevitable
-if err := sm.Wait(); err != nil {
+if err := sm_.Wait(); err != nil {
     log.Fatal("Failed to die gracefully:", err)
 }
 ```
@@ -202,11 +202,11 @@ Because if you're not measuring it, you're just guessing.
 import "github.com/theHamdiz/it/tk"
 
 // Basic timing
-tk := tk.NewTimeKeeper("database-query").Start()
-defer tk.Stop()
+tk_ := tk.NewTimeKeeper("database-query").Start()
+defer tk_.Stop()
 
 // With a callback for the micromanagers
-tk := tk.NewTimeKeeper("expensive-operation",
+tk_ := tk.NewTimeKeeper("expensive-operation",
     tk.WithCallback(func(d time.Duration) {
         metrics.Record("too-slow", d)
     }),

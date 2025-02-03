@@ -36,10 +36,39 @@ maybeConnect := it.Could(func() (*sql.DB, error) {
 db := maybeConnect() // First call actually does the work
 alsoDb := maybeConnect() // Returns same result, wasn't worth trying again anyway
 
+if value, ok := it.Might(maybeThisWorks); ok {
+    // Nice, we got something
+} else {
+    // No biggie, we weren't counting on it anyway
+}
+
 // The "cover your tracks" strategy
 err := it.WrapError(dbErr, "database had an existential crisis",
     map[string]any{"attempt": 42, "mood": "gothic"})
 ```
+
+### SafeGo - Panic-Proof Goroutines
+
+Because letting goroutines die alone in the dark is just cruel.
+
+```go
+import "github.com/theHamdiz/it"
+
+// Fire and forget (but not really)
+it.SafeGo(func() {
+    DoSomethingDangerous()  // We'll catch you if you fall
+})
+
+// For the context-aware crowd
+it.SafeGoWithContext(ctx, func(ctx context.Context) {
+    ResponsiblyDangerous(ctx)  // Safety first, but make it contextual
+})
+```
+
+Includes automatic panic recovery and proper context propagation. Perfect for when you want to live dangerously but with a safety net.
+
+Now go forth and spawn goroutines without fear of them taking your program down with them.
+
 
 ### Logging (Now with proper prefixes)
 

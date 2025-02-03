@@ -134,6 +134,18 @@ func Could[T any](operation func() (T, error)) func() T {
 	}
 }
 
+// Might is for when success is optional but you'd like to know about it
+// Returns (value, true) if it worked, (zero, false) if it didn't
+func Might[T any](operation func() (T, error)) (T, bool) {
+	result, err := operation()
+	if err != nil {
+		logger.DefaultLogger().Debug(fmt.Sprintf("it didn't work out: %v", err))
+		var zero T
+		return zero, false
+	}
+	return result, true
+}
+
 // WrapError wraps an error with a custom message and additional metadata.
 // If the original error is nil, it simply returns nil.
 func WrapError(err error, message string, metadata map[string]any) error {

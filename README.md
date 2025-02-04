@@ -379,11 +379,45 @@ Now go forth and fail gracefully, because that's what mature code does.
 ```go
 import "github.com/theHamdiz/it/result"
 
+// For the optimists
 res := result.Ok("success")
 if res.IsOk() {
     value := res.UnwrapOr("plan B")
 }
+
+// For the realists
+res := result.Try(func() string {
+    return maybeExplode()
+}).OrElse(func() Result[string] {
+    return Ok("at least we tried")
+})
+
+// For the functional programming enthusiasts
+result.Ok(42).
+    Filter(isNotTooLarge).
+    Map(addOne).
+    Match(
+        func(n int) { fmt.Println("Yay:", n) },
+        func(err error) { /* pretend this never happened */ },
+    )
+
+// For those who like to live dangerously
+value := result.Some(42).UnwrapOrPanic() // YOLO
+
+// For the overachievers
+pairs := result.Zip(
+    result.Ok("hello"),
+    result.Ok(42),
+) // Because one value isn't complicated enough
+
+// For when you need to fail collectively
+results := result.Collect([]Result[int]{
+    Ok(1), Ok(2), Err[int](errors.New("oops"))
+}) // Misery loves company
 ```
+
+Because if you're going to handle errors, you might as well do it with style.
+Now with 100% more Option types, because nil was getting lonely.
 
 ### Math - For The Algorithmically Gifted
 

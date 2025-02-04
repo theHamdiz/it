@@ -3,6 +3,7 @@ package result_test
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/theHamdiz/it/result"
@@ -197,4 +198,425 @@ func TestOrElse(t *testing.T) {
 	if noFallbackRes.UnwrapOr(0) != 123 {
 		t.Errorf("Expected original Ok value 123, got %v", noFallbackRes.UnwrapOr(0))
 	}
+}
+
+func TestMatch(t *testing.T) {
+	tests := []struct {
+		name    string
+		r       result.Result[string]
+		wantOk  string
+		wantErr string
+		matched bool
+	}{
+		{
+			name:    "matches success case",
+			r:       result.Ok("success"),
+			wantOk:  "SUCCESS",
+			matched: true,
+		},
+		{
+			name:    "matches error case",
+			r:       result.Err[string](errors.New("failed")),
+			wantErr: "FAILED",
+			matched: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var matched bool
+			tt.r.Match(
+				func(v string) {
+					matched = true
+					if strings.ToUpper(v) != tt.wantOk {
+						t.Errorf("Match ok got = %v, want %v", v, tt.wantOk)
+					}
+				},
+				func(err error) {
+					matched = true
+					if strings.ToUpper(err.Error()) != tt.wantErr {
+						t.Errorf("Match err got = %v, want %v", err, tt.wantErr)
+					}
+				},
+			)
+			if matched != tt.matched {
+				t.Errorf("Match called = %v, want %v", matched, tt.matched)
+			}
+		})
+	}
+}
+
+func TestFilter(t *testing.T) {
+	tests := []struct {
+		name      string
+		r         result.Result[int]
+		predicate func(int) bool
+		want      bool
+	}{
+		{
+			name:      "passes filter",
+			r:         result.Ok(42),
+			predicate: func(i int) bool { return i > 40 },
+			want:      true,
+		},
+		{
+			name:      "fails filter",
+			r:         result.Ok(38),
+			predicate: func(i int) bool { return i > 40 },
+			want:      false,
+		},
+		{
+			name:      "error stays error",
+			r:         result.Err[int](errors.New("failed")),
+			predicate: func(i int) bool { return true },
+			want:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filtered := tt.r.Filter(tt.predicate)
+			if got := filtered.IsOk(); got != tt.want {
+				t.Errorf("Filter() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInspect(t *testing.T) {
+	var inspected int
+	r := result.Ok(42)
+
+	// Test Inspect
+	res := r.Inspect(func(v int) {
+		inspected = v
+	})
+
+	if inspected != 42 {
+		t.Errorf("Inspect() didn't call function with correct value, got %v", inspected)
+	}
+	if !res.IsOk() {
+		t.Error("Inspect() changed Result status")
+	}
+
+	// Test InspectErr
+	var inspectedErr error
+	errResult := result.Err[int](errors.New("test error"))
+
+	res = errResult.InspectErr(func(err error) {
+		inspectedErr = err
+	})
+
+	if inspectedErr == nil || inspectedErr.Error() != "test error" {
+		t.Errorf("InspectErr() didn't call function with correct error")
+	}
+	if !res.IsErr() {
+		t.Error("InspectErr() changed Result status")
+	}
+}
+
+func TestCollect(t *testing.T) {
+	tests := []struct {
+		name    string
+		results []result.Result[int]
+		want    []int
+		wantErr bool
+	}{
+		{
+			name: "all success",
+			results: []result.Result[int]{
+				result.Ok(1),
+				result.Ok(2),
+				result.Ok(3),
+			},
+			want:    []int{1, 2, 3},
+			wantErr: false,
+		},
+		{
+			name: "contains error",
+			results: []result.Result[int]{
+				result.Ok(1),
+				result.Err[int](errors.New("failed")),
+				result.Ok(3),
+			},
+			wantErr: true,
+		},
+		{
+			name:    "empty slice",
+			results: []result.Result[int]{},
+			want:    []int{},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			collected := result.Collect(tt.results)
+			if tt.wantErr {
+				if collected.IsOk() {
+					t.Error("Collect() expected error, got success")
+				}
+				return
+			}
+
+			if collected.IsErr() {
+				t.Errorf("Collect() unexpected error: %v", collected.UnwrapErr())
+				return
+			}
+
+			got, _ := collected.Unwrap()
+			if len(got) != len(tt.want) {
+				t.Errorf("Collect() got len = %v, want %v", len(got), len(tt.want))
+				return
+			}
+
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("Collect() got[%d] = %v, want %v", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestZip(t *testing.T) {
+	tests := []struct {
+		name    string
+		r1      result.Result[int]
+		r2      result.Result[string]
+		want    result.Pair[int, string]
+		wantErr bool
+	}{
+		{
+			name:    "both success",
+			r1:      result.Ok(42),
+			r2:      result.Ok("success"),
+			want:    result.Pair[int, string]{First: 42, Second: "success"},
+			wantErr: false,
+		},
+		{
+			name:    "first error",
+			r1:      result.Err[int](errors.New("first failed")),
+			r2:      result.Ok("success"),
+			wantErr: true,
+		},
+		{
+			name:    "second error",
+			r1:      result.Ok(42),
+			r2:      result.Err[string](errors.New("second failed")),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			zipped := result.Zip(tt.r1, tt.r2)
+			if tt.wantErr {
+				if zipped.IsOk() {
+					t.Error("Zip() expected error, got success")
+				}
+				return
+			}
+
+			if zipped.IsErr() {
+				t.Errorf("Zip() unexpected error: %v", zipped.UnwrapErr())
+				return
+			}
+
+			got, _ := zipped.Unwrap()
+			if got.First != tt.want.First || got.Second != tt.want.Second {
+				t.Errorf("Zip() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTry(t *testing.T) {
+	tests := []struct {
+		name    string
+		fn      func() string
+		want    string
+		wantErr string
+	}{
+		{
+			name: "success",
+			fn: func() string {
+				return "success"
+			},
+			want: "success",
+		},
+		{
+			name: "panic with error",
+			fn: func() string {
+				panic(errors.New("planned error"))
+			},
+			wantErr: "planned error",
+		},
+		{
+			name: "panic with string",
+			fn: func() string {
+				panic("something went wrong")
+			},
+			wantErr: "something went wrong",
+		},
+		{
+			name: "panic with other type",
+			fn: func() string {
+				panic(42)
+			},
+			wantErr: "panic: 42",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := result.Try(tt.fn)
+
+			if tt.wantErr != "" {
+				if r.IsOk() {
+					t.Error("Try() expected error, got success")
+					return
+				}
+				if err := r.UnwrapErr(); err.Error() != tt.wantErr {
+					t.Errorf("Try() error = %v, want %v", err, tt.wantErr)
+				}
+				return
+			}
+
+			if r.IsErr() {
+				t.Errorf("Try() unexpected error: %v", r.UnwrapErr())
+				return
+			}
+
+			got, _ := r.Unwrap()
+			if got != tt.want {
+				t.Errorf("Try() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOption(t *testing.T) {
+	t.Run("Some", func(t *testing.T) {
+		opt := result.Some(42)
+
+		if opt.IsNone() {
+			t.Error("Some value reported as None")
+		}
+		if !opt.IsSome() {
+			t.Error("Some value not reported as Some")
+		}
+		if v := opt.UnwrapOr(0); v != 42 {
+			t.Errorf("UnwrapOr returned %v, want 42", v)
+		}
+		if v := opt.UnwrapOrPanic(); v != 42 {
+			t.Errorf("UnwrapOrPanic returned %v, want 42", v)
+		}
+	})
+
+	t.Run("None", func(t *testing.T) {
+		opt := result.None[int]()
+
+		if !opt.IsNone() {
+			t.Error("None value not reported as None")
+		}
+		if opt.IsSome() {
+			t.Error("None value reported as Some")
+		}
+		if v := opt.UnwrapOr(42); v != 42 {
+			t.Errorf("UnwrapOr returned %v, want 42", v)
+		}
+	})
+
+	t.Run("None_UnwrapOrPanic", func(t *testing.T) {
+		opt := result.None[int]()
+
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("UnwrapOrPanic did not panic on None")
+			}
+		}()
+
+		_ = opt.UnwrapOrPanic()
+	})
+}
+
+func TestTranspose(t *testing.T) {
+	t.Run("Some_Ok", func(t *testing.T) {
+		r := result.Ok(result.Some(42))
+		opt := result.Transpose(r)
+
+		if opt.IsNone() {
+			t.Fatal("Expected Some, got None")
+		}
+
+		res := opt.UnwrapOrPanic()
+		if res.IsErr() {
+			t.Fatal("Expected Ok, got Err")
+		}
+
+		val, _ := res.Unwrap()
+		if val != 42 {
+			t.Errorf("Got %v, want 42", val)
+		}
+	})
+
+	t.Run("Some_Err", func(t *testing.T) {
+		err := errors.New("test error")
+		r := result.Err[result.Option[int]](err)
+		opt := result.Transpose(r)
+
+		if opt.IsNone() {
+			t.Fatal("Expected Some, got None")
+		}
+
+		res := opt.UnwrapOrPanic()
+		if !res.IsErr() {
+			t.Fatal("Expected Err, got Ok")
+		}
+
+		if e := res.UnwrapErr(); e != err {
+			t.Errorf("Got error %v, want %v", e, err)
+		}
+	})
+
+	t.Run("None", func(t *testing.T) {
+		r := result.Ok(result.None[int]())
+		opt := result.Transpose(r)
+
+		if !opt.IsNone() {
+			t.Error("Expected None, got Some")
+		}
+	})
+}
+
+func TestFromOption(t *testing.T) {
+	err := errors.New("none error")
+
+	t.Run("Some", func(t *testing.T) {
+		opt := result.Some(42)
+		r := result.FromOption(opt, err)
+
+		if r.IsErr() {
+			t.Fatal("Expected Ok, got Err")
+		}
+
+		val, _ := r.Unwrap()
+		if val != 42 {
+			t.Errorf("Got %v, want 42", val)
+		}
+	})
+
+	t.Run("None", func(t *testing.T) {
+		opt := result.None[int]()
+		r := result.FromOption(opt, err)
+
+		if !r.IsErr() {
+			t.Fatal("Expected Err, got Ok")
+		}
+
+		if e := r.UnwrapErr(); e != err {
+			t.Errorf("Got error %v, want %v", e, err)
+		}
+	})
 }

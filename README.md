@@ -433,6 +433,23 @@ choose, err := math.Binomial(20, 10)
 fib := math.Fibonacci(42)
 ```
 
+### GenerateSecret - Probably SecureTM
+
+```go
+import "github.com/theHamdiz/it"
+// When you need a secret that's totally random*
+secret := it.GenerateSecret(32)
+
+// * Usually uses crypto/rand, but if that fails...
+// well, let's just say we get creative with time.
+// It's like using your birthday as a password,
+// but with nanoseconds. Security through obscurity!
+```
+
+Perfect for when you need cryptographic strength secrets, unless you don't, in which case you'll get something that looks cryptographic enough to fool management.
+
+Now go forth and generate secrets that are definitely not predictable (most of the time).
+
 ### Config - Because Hardcoding is a Crime
 
 For when you need to make your application configurable, but still predictably unreliable.

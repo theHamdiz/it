@@ -139,7 +139,7 @@ func Could[T any](operation func() (T, error)) func() T {
 func Might[T any](operation func() (T, error)) (T, bool) {
 	result, err := operation()
 	if err != nil {
-		logger.DefaultLogger().Debug(fmt.Sprintf("it didn't work out: %v", err))
+		logger.DefaultLogger().Debugf("it didn't work out: %v", err)
 		var zero T
 		return zero, false
 	}

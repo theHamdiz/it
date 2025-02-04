@@ -217,11 +217,70 @@ if err := sm_.Wait(); err != nil {
 }
 ```
 
+```go
+// Or just use the global shortcut (for the pragmatists)
+import "github.com/theHamdiz/it"
+
+it.GracefulShutdown(ctx, server, 30*time.Second, done, func() {
+    // Your last words here
+})
+
+// Need a phoenix-like rebirth?
+it.GracefulRestart(ctx, server, 30*time.Second, done, func() {
+    // Rise from the ashes
+})
+```
+
 Handles shutdown signals (SIGINT, SIGTERM by default), manages cleanup tasks with timeouts, and ensures your program dies with dignity instead of just crashing.
 
 Critical actions fail the whole shutdown if they fail, non-critical ones just log and continue, because some things aren't worth dying twice over.
 
 Perfect for when you need your program to clean up after itself instead of leaving a mess for the OS to deal with.
+
+### Rate Limiter - Traffic Control for Functions
+
+```go
+// The proper way (for when you need full control)
+import "github.com/theHamdiz/it/rl"
+
+limiter := rl.NewRateLimiter(time.Second, 10)
+defer limiter.Close()
+
+err := limiter.Execute(ctx, func() error {
+    return DoSomethingFast()  // But not too fast
+})
+
+// Or better yet, with actual returns
+result, err := rl.ExecuteRateLimited(limiter, ctx, func() (string, error) {
+    return GetSomethingQuickly()  // Responsibly quick
+})
+```
+
+```go
+// The shortcut (for the rest of us)
+import "github.com/theHamdiz/it"
+
+// Turn any function into a well-behaved citizen
+chillVersion := it.RateLimiter(time.Second, func() string {
+    return IWouldSpamThisIfICould()
+}).(func() string)
+
+// Usage:
+result := chillVersion()  // Now properly paced
+
+// Waiting (but not forever)
+success := it.WaitFor(5*time.Second, func() bool {
+    return systemIsReady()  // Are we there yet?
+})
+
+if !success {
+    // Time to give up and go home
+}
+```
+
+Perfect for when your functions need to learn some self-control, without all the ceremony.
+
+Now go forth and rate limit responsibly. Your servers will thank you.
 
 ### Time Keeper - Time Tracking for the Obsessed
 
@@ -252,6 +311,37 @@ for task := range tasks {
     atk.Track(func() { process(task) })
 }
 durations := atk.Wait()
+```
+
+```go
+// The dirty shortcut approach!!
+import "github.com/theHamdiz/it"
+
+result := it.TimeFunction("critical-operation", func() string {
+    return DoSomethingWorthTiming()
+})
+
+// Block timing with defer
+defer it.TimeBlock("expensive-stuff")()
+
+// Custom timing callback
+it.TimeFunctionWithCallback("important-task",
+    func() string {
+        return ExpensiveOperation()
+    },
+    func(d time.Duration) {
+        if d > time.Second {
+            alertSomeone()  // Someone's being slow
+    },
+)
+
+// Parallel timing (for the impatient)
+durations := it.TimeParallel("batch-process",
+    func() { task1() },
+    func() { task2() },
+    func() { task3() },
+)
+// Now you know which one to blame
 ```
 
 Times your operations, logs the results, and lets you obsess over performance with minimal effort. Supports both synchronous and async operations, because sometimes you need to time multiple failures simultaneously.

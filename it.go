@@ -649,9 +649,9 @@ func GenerateSecret(numBytes int) string {
 	return hex.EncodeToString(bytes)
 }
 
-// ===================================================
+// =======================================================
 // Configuration - Making Things Configurable Since 2025
-// ===================================================
+// =======================================================
 
 // InitFromEnv initializes logger settings from environment variables
 func InitFromEnv() {

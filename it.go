@@ -411,32 +411,35 @@ func RetryExponentialWithContext(ctx context.Context, attempts int, initialDelay
 // Graceful Operations - Because SIGKILL Is Not The Answer
 // ===================================================
 
-// GracefulShutdown implements graceful shutdown with optional action and completion notification
+// GracefulShutdown performs a graceful shutdown on the provided server.
+// The server parameter can implement Shutdown with either signature:
+//   - Shutdown(context.Context) error
+//   - Shutdown() error
 func GracefulShutdown(
 	ctx context.Context,
-	server interface{ Shutdown(context.Context) error },
+	server interface{},
 	timeout time.Duration,
 	done chan<- bool,
 	action func(),
 ) {
-	// Create shutdown manager with context
+	// Create shutdown manager with SIGINT and SIGTERM.
 	manager := sm.NewShutdownManager(syscall.SIGINT, syscall.SIGTERM)
 
-	// Create a context with timeout for shutdown operations
+	// Create a context with timeout for shutdown operations.
 	shutdownCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	// Add server shutdown as a critical action
+	// Add server shutdown as a critical action using the reflection helper.
 	manager.AddAction(
 		"server-shutdown",
 		func(actionCtx context.Context) error {
-			return server.Shutdown(actionCtx)
+			return callShutdown(server, actionCtx)
 		},
 		timeout,
 		true, // Critical action
 	)
 
-	// If there's a post-shutdown action, add it as a non-critical action
+	// If a post-shutdown action is provided, add it as non-critical.
 	if action != nil {
 		manager.AddAction(
 			"post-shutdown-action",
@@ -449,53 +452,55 @@ func GracefulShutdown(
 		)
 	}
 
-	// Start the shutdown manager
+	// Start the shutdown manager.
 	manager.Start()
 
-	// Wait for shutdown to complete or context to cancel
+	// Wait for shutdown to complete or for the timeout.
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- manager.Wait()
 	}()
 
-	// Wait for either completion or timeout
 	var err error
 	select {
 	case err = <-errChan:
-		// Shutdown completed
+		// Shutdown completed.
 	case <-shutdownCtx.Done():
 		err = shutdownCtx.Err()
 	}
 
-	// Signal completion if a done channel was provided
+	// Signal completion if a done channel was provided.
 	if done != nil {
 		done <- err == nil
 		close(done)
 	}
 }
 
-// GracefulRestart implements graceful restart with optional action and completion notification
+// GracefulRestart performs a graceful restart on the provided server.
+// The server parameter can implement Shutdown with either signature:
+//   - Shutdown(context.Context) error
+//   - Shutdown() error
 func GracefulRestart(
 	ctx context.Context,
-	server interface{ Shutdown(context.Context) error },
+	server interface{},
 	timeout time.Duration,
 	done chan<- bool,
 	action func(),
 ) {
-	// Create shutdown manager with SIGHUP for restart
+	// Create shutdown manager with SIGHUP (for restart).
 	manager := sm.NewShutdownManager(syscall.SIGHUP)
 
-	// Add server shutdown as a critical action
+	// Add server shutdown as a critical action.
 	manager.AddAction(
 		"server-shutdown",
 		func(actionCtx context.Context) error {
-			return server.Shutdown(actionCtx)
+			return callShutdown(server, actionCtx)
 		},
 		timeout,
 		true, // Critical action
 	)
 
-	// Add restart action if provided
+	// If a restart action is provided, add it as critical.
 	if action != nil {
 		manager.AddAction(
 			"restart-action",
@@ -508,13 +513,13 @@ func GracefulRestart(
 		)
 	}
 
-	// Start the shutdown manager
+	// Start the shutdown manager.
 	manager.Start()
 
-	// Wait for restart to complete
+	// Wait for restart to complete.
 	err := manager.Wait()
 
-	// Signal completion if a done channel was provided
+	// Signal completion if a done channel was provided.
 	if done != nil {
 		done <- err == nil
 		close(done)
@@ -713,6 +718,54 @@ func parseLogLevel(level string) logger.LogLevel {
 	default:
 		return logger.LevelInfo
 	}
+}
+
+// callShutdown is a helper that calls the Shutdown method on a server instance.
+// It supports both signatures:
+//   - Shutdown(context.Context) error
+//   - Shutdown() error
+func callShutdown(server interface{}, ctx context.Context) error {
+	v := reflect.ValueOf(server)
+	method := v.MethodByName("Shutdown")
+	if !method.IsValid() {
+		return fmt.Errorf("server does not implement a Shutdown method")
+	}
+
+	methodType := method.Type()
+	var args []reflect.Value
+	switch methodType.NumIn() {
+	case 0:
+		// Signature: Shutdown() error
+		args = []reflect.Value{}
+	case 1:
+		// Signature: Shutdown(context.Context) error (or similar)
+		paramType := methodType.In(0)
+		if !reflect.TypeOf(ctx).AssignableTo(paramType) {
+			return fmt.Errorf("Shutdown method expects parameter of type %v; context.Context is not assignable", paramType)
+		}
+		args = []reflect.Value{reflect.ValueOf(ctx)}
+	default:
+		return fmt.Errorf("Shutdown method has unsupported number of parameters: %d", methodType.NumIn())
+	}
+
+	results := method.Call(args)
+	// If no return values, assume success.
+	if len(results) == 0 {
+		return nil
+	}
+	// If one result and it's an error, return it.
+	if len(results) == 1 {
+		if err, ok := results[0].Interface().(error); ok {
+			return err
+		}
+		return nil
+	}
+	// If multiple return values, assume the last one is error.
+	last := results[len(results)-1]
+	if err, ok := last.Interface().(error); ok {
+		return err
+	}
+	return nil
 }
 
 func init() {

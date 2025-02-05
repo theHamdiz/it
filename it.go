@@ -51,6 +51,7 @@ import (
 	"github.com/theHamdiz/it/rl"
 	"github.com/theHamdiz/it/sm"
 	"github.com/theHamdiz/it/tk"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ===================================================
@@ -652,6 +653,25 @@ func GenerateSecret(numBytes int) string {
 
 	// Convert to hex string
 	return hex.EncodeToString(bytes)
+}
+
+// HashPassword takes your oh-so-secret password and a cost factor (because apparently, more work equals more security),
+// then returns a bcrypt hash or an error if things go sideways. Try not to be shocked by the complexity.
+func HashPassword(password string, cost int) ([]byte, error) {
+	// Convert your string password to bytes because bcrypt is stuck in the dark ages of byte slices.
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), cost)
+	if err != nil {
+		// Oops! Something went wrong. Hopefully, you enjoy error messages as much as we do.
+		return nil, fmt.Errorf("failed to hash password (surprise!): %w", err)
+	}
+	return hashedPassword, nil
+}
+
+// VerifyPassword compares a stored bcrypt hashed password with the plain text password you (hopefully) remembered.
+// Returns nil if they match, otherwise an error. Yes, it's basically a one-way street: you can't decrypt, you can only compare.
+func VerifyPassword(hashedPassword []byte, password string) error {
+	// Compare the hash with the password (converted to bytes, because we're stuck in byte land).
+	return bcrypt.CompareHashAndPassword(hashedPassword, []byte(password))
 }
 
 // =======================================================

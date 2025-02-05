@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/theHamdiz/it"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // TestRecoverPanicAndContinue tests panic recovery
@@ -359,7 +360,7 @@ func TestWaitFor(t *testing.T) {
 func TestGenerateSecret(t *testing.T) {
 	for secretLength := 4; secretLength <= 16; secretLength++ {
 		seenSecrets := make(map[string]struct{})
-		// Technically, duplicate secrets could be produced even 
+		// Technically, duplicate secrets could be produced even
 		// if working properly, but it's relatively unlikely.
 		for i := 0; i < 10; i++ {
 			secret := it.GenerateSecret(secretLength)
@@ -372,6 +373,78 @@ func TestGenerateSecret(t *testing.T) {
 			}
 			seenSecrets[secret] = struct{}{}
 		}
+	}
+}
+
+// TestHashPassword ensures that HashPassword returns a valid bcrypt hash.
+func TestHashPassword(t *testing.T) {
+	password := "mySecretPassword123"
+	cost := 12
+
+	hashed, err := it.HashPassword(password, cost)
+	if err != nil {
+		t.Fatalf("HashPassword returned an error (surprise!): %v", err)
+	}
+	if len(hashed) == 0 {
+		t.Fatal("Expected a non-empty hashed password; did you forget to hash it?")
+	}
+
+	// Check that the resulting hash is valid by using bcrypt's CompareHashAndPassword.
+	if err := bcrypt.CompareHashAndPassword(hashed, []byte(password)); err != nil {
+		t.Errorf("bcrypt comparison failed: %v", err)
+	}
+}
+
+// TestVerifyPassword_Correct verifies that VerifyPassword accepts the correct password.
+func TestVerifyPassword_Correct(t *testing.T) {
+	password := "mySecretPassword123"
+	cost := 12
+
+	hashed, err := it.HashPassword(password, cost)
+	if err != nil {
+		t.Fatalf("HashPassword returned an error (not again!): %v", err)
+	}
+
+	// The correct password should pass verification.
+	if err := it.VerifyPassword(hashed, password); err != nil {
+		t.Errorf("VerifyPassword failed for a correct password: %v", err)
+	}
+}
+
+// TestVerifyPassword_Incorrect ensures that VerifyPassword rejects an incorrect password.
+func TestVerifyPassword_Incorrect(t *testing.T) {
+	password := "mySecretPassword123"
+	wrongPassword := "wrongPassword"
+	cost := 12
+
+	hashed, err := it.HashPassword(password, cost)
+	if err != nil {
+		t.Fatalf("HashPassword returned an error (seriously?): %v", err)
+	}
+
+	// The wrong password should not verify.
+	if err := it.VerifyPassword(hashed, wrongPassword); err == nil {
+		t.Error("VerifyPassword accepted an incorrect password (we thought you cared about security)")
+	}
+}
+
+// TestHashProducesDifferentHashes verifies that the same password produces different hashes
+// each time due to the random salt. Because if they're equal, then something is very wrong.
+func TestHashProducesDifferentHashes(t *testing.T) {
+	password := "mySecretPassword123"
+	cost := 12
+
+	hashed1, err := it.HashPassword(password, cost)
+	if err != nil {
+		t.Fatalf("First HashPassword call failed: %v", err)
+	}
+	hashed2, err := it.HashPassword(password, cost)
+	if err != nil {
+		t.Fatalf("Second HashPassword call failed: %v", err)
+	}
+
+	if string(hashed1) == string(hashed2) {
+		t.Error("Two hashes for the same password should not be equal (thanks, salt!)")
 	}
 }
 

@@ -467,22 +467,28 @@ choose, err := math.Binomial(20, 10)
 fib := math.Fibonacci(42)
 ```
 
-### GenerateSecret - Probably SecureTM
+Ultimate Security Suite – When “Good Enough” Isn’t Good Enough
 
 ```go
 import "github.com/theHamdiz/it"
-// When you need a secret that's totally random*
-secret := it.GenerateSecret(32)
 
-// * Usually uses crypto/rand, but if that fails...
-// well, let's just say we get creative with time.
-// It's like using your birthday as a password,
-// but with nanoseconds. Security through obscurity!
+// When you need a secret that's totally random*:
+secret := it.GenerateSecret(32)
+// *Usually uses crypto/rand, but if that fails... well, we get creative with time.
+// It's like using your birthday as a password, but with nanoseconds. Security through obscurity!
+
+// When your password is too lazy to protect itself:
+hashed, err := it.HashPassword("mySuperSecret", 12)
+// Your password is sent to a rigorous bootcamp (bcrypt rounds), emerging as a hardened hash with its own unique salt.
+// If the bootcamp fails, you'll get a polite error message.
+
+// Think your password can waltz past the velvet rope?
+err = it.VerifyPassword(hashed, "mySuperSecret")
+// If err is nil, congratulations—your password made the cut.
+// Otherwise, it's like a bouncer telling you, "Not on the list, buddy."
 ```
 
-Perfect for when you need cryptographic strength secrets, unless you don't, in which case you'll get something that looks cryptographic enough to fool management.
-
-Now go forth and generate secrets that are definitely not predictable (most of the time).
+Now go forth and generate cryptographically convincing secrets, hash those passwords like they’re training for a marathon, and verify them with the confidence of a seasoned doorman. Enjoy your Ultimate Security Suite—because sometimes, even security needs a little swagger.
 
 ### Config - Because Hardcoding is a Crime
 
